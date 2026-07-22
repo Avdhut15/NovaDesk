@@ -13,8 +13,14 @@ server/src/generated/
 
 # ─── Environment — ALL variants, never commit secrets ─────────────────────────
 .env
-.env.*
-!.env.example       # allow the example template to be committed
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.test
+.env.*.local
+# Allow the example template
+!.env.example
 
 # ─── Logs ─────────────────────────────────────────────────────────────────────
 *.log

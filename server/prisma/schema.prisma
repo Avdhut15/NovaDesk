@@ -1,0 +1,99 @@
+// ─── Data Source ──────────────────────────────────────────────────────────────
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Generator ────────────────────────────────────────────────────────────────
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+enum TicketStatus {
+  OPEN
+  RESOLVED
+  CLOSED
+}
+
+enum TicketCategory {
+  GENERAL_QUESTION
+  TECHNICAL_QUESTION
+  REFUND_REQUEST
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         Role      @default(AGENT)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  assignedTickets Ticket[] @relation("AssignedAgent")
+  createdTickets  Ticket[] @relation("CreatedBy")
+
+  @@map("users")
+}
+
+model Ticket {
+  id          String         @id @default(cuid())
+  subject     String
+  body        String
+  status      TicketStatus   @default(OPEN)
+  category    TicketCategory @default(GENERAL_QUESTION)
+  fromEmail   String?
+  fromName    String?
+  emailThreadId String?      @unique
+
+  // AI fields
+  aiSummary        String?
+  aiSuggestedReply String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  assignedAgentId String?
+  assignedAgent   User?   @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation("CreatedBy", fields: [createdById], references: [id])
+
+  replies TicketReply[]
+
+  @@map("tickets")
+}
+
+model TicketReply {
+  id        String   @id @default(cuid())
+  body      String
+  fromAgent Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_replies")
+}
+
+model KnowledgeBase {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  category  TicketCategory?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("knowledge_base")
+}
