@@ -1,0 +1,37 @@
+# ─── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ─── Build Outputs ────────────────────────────────────────────────────────────
+dist/
+build/
+*.tsbuildinfo
+
+# ─── Generated Code ───────────────────────────────────────────────────────────
+server/src/generated/
+
+# ─── Environment — ALL variants, never commit secrets ─────────────────────────
+.env
+.env.*
+!.env.example       # allow the example template to be committed
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+bun-error.pid
+logs/
+
+# ─── IDE / OS ─────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Planning & Internal Docs (not for public repo) ──────────────────────────
+implementation-plan.md
+project-scope.md
+tech-stack.md
+GEMINI.md
+.agent/
