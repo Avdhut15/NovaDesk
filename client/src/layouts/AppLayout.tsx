@@ -3,7 +3,7 @@ import styles from './AppLayout.module.css';
 
 const navItems = [
   { to: '/dashboard', label: '📊 Dashboard' },
-  { to: '/tickets',   label: '🎫 Tickets' },
+  { to: '/tickets', label: '🎫 Tickets' },
 ];
 
 export function AppLayout() {
