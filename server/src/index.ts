@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import session from 'express-session';
+import { toNodeHandler } from 'better-auth/node';
 import { env } from './config/env';
+import { auth } from './lib/auth';
 import { prisma } from './lib/prisma';
 import { apiRouter } from './routes';
 import { errorHandler } from './middleware/errorHandler';
@@ -19,23 +20,13 @@ app.use(
   })
 );
 
+// ─── Better Auth Handler ──────────────────────────────────────────────────────
+// Must be registered BEFORE express.json() so Better Auth can read the raw body.
+app.all('/api/auth/*splat', toNodeHandler(auth));
+
+// ─── Body Parsers ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-
-// ─── Session ──────────────────────────────────────────────────────────────────
-app.use(
-  session({
-    secret: env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: env.NODE_ENV === 'production',
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
-    },
-  })
-);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', async (_req, res) => {
@@ -62,6 +53,7 @@ app.use(errorHandler);
 // ─── Start Server ─────────────────────────────────────────────────────────────
 app.listen(env.PORT, () => {
   console.log(`🚀 NovaDesk server running on http://localhost:${env.PORT}`);
+  console.log(`🔐 Auth available at http://localhost:${env.PORT}/api/auth`);
 });
 
 export default app;

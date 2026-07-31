@@ -11,6 +11,7 @@ export const env = {
     | 'test',
   PORT: Number(process.env.PORT ?? 3001),
   CLIENT_URL: process.env.CLIENT_URL ?? 'http://localhost:5173',
-  SESSION_SECRET: process.env.SESSION_SECRET ?? 'dev-secret-change-in-production',
   DATABASE_URL: required('DATABASE_URL'),
+  BETTER_AUTH_SECRET: required('BETTER_AUTH_SECRET'),
+  BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3001',
 };

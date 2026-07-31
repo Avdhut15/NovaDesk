@@ -41,3 +41,5 @@ project-scope.md
 tech-stack.md
 GEMINI.md
 .agent/
+.agents/
+skills-lock.json
