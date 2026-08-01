@@ -10,6 +10,7 @@
     "lint": "bunx oxlint src"
   },
   "dependencies": {
+    "better-auth": "^1.6.25",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.6.3"
