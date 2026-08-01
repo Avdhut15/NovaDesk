@@ -1,30 +1,61 @@
 import { PrismaClient } from '../src/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { hashPassword } from 'better-auth/crypto';
+import { Role } from '../src/types/roles';
 
+// ─── DB Client ────────────────────────────────────────────────────────────────
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
 });
 const prisma = new PrismaClient({ adapter });
 
+// ─── Seed Config from Env ─────────────────────────────────────────────────────
+const SEED_ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? 'admin@example.com';
+const SEED_ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? 'password123';
+const SEED_ADMIN_NAME = process.env.SEED_ADMIN_NAME ?? 'Admin';
+
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Create admin user (password: "admin123" — bcrypt hash)
-  // NOTE: In Phase 2, replace this with a proper bcrypt hash
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@novadesk.local' },
-    update: {},
-    create: {
-      email: 'admin@novadesk.local',
-      name: 'Admin',
-      role: 'ADMIN',
-      passwordHash: '$2b$10$placeholder_change_in_phase2',
-    },
+  // ─── Admin User ─────────────────────────────────────────────────────────────
+  const existingUser = await prisma.user.findUnique({
+    where: { email: SEED_ADMIN_EMAIL },
   });
 
-  console.log(`✅ Admin user: ${admin.email}`);
+  if (existingUser) {
+    console.log(`⚠️  User ${SEED_ADMIN_EMAIL} already exists — skipping.`);
+  } else {
+    // Create the user record
+    const user = await prisma.user.create({
+      data: {
+        id: crypto.randomUUID(),
+        email: SEED_ADMIN_EMAIL,
+        name: SEED_ADMIN_NAME,
+        emailVerified: true,
+        role: Role.ADMIN,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
 
-  // Seed some knowledge base entries
+    // Hash the password using Better Auth's own hasher and link a credential account
+    const hashed = await hashPassword(SEED_ADMIN_PASSWORD);
+    await prisma.account.create({
+      data: {
+        id: crypto.randomUUID(),
+        accountId: user.id,
+        providerId: 'credential',
+        userId: user.id,
+        password: hashed,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    console.log(`✅ Admin user created: ${user.email} (role: ${user.role})`);
+  }
+
+  // ─── Knowledge Base ───────────────────────────────────────────────────────
   await prisma.knowledgeBase.createMany({
     data: [
       {

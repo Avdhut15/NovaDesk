@@ -3,6 +3,7 @@ import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { admin as adminPlugin } from 'better-auth/plugins';
 import { prisma } from './prisma';
 import { env } from '../config/env';
+import { Role } from '../types/roles';
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
 // We use "admin" and "agent" as our Better Auth role strings,
@@ -21,6 +22,7 @@ export const auth = betterAuth({
   // ─── Email / Password ───────────────────────────────────────────────────────
   emailAndPassword: {
     enabled: true,
+    disableSignUp: true,
   },
 
   // ─── Session ────────────────────────────────────────────────────────────────
@@ -36,8 +38,8 @@ export const auth = betterAuth({
   // ─── Plugins ────────────────────────────────────────────────────────────────
   plugins: [
     adminPlugin({
-      defaultRole: 'agent',
-      adminRole: 'admin',
+      defaultRole: Role.AGENT,
+      adminRole: Role.ADMIN,
     }),
   ],
 
