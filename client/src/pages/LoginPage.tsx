@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { authClient } from '../lib/authClient';
-import styles from './LoginPage.module.css';
 
 // ─── Validation schema ────────────────────────────────────────────────────────
 const loginSchema = z.object({
@@ -54,81 +53,91 @@ export function LoginPage() {
       return;
     }
 
-    // Ensure session store is fully hydrated before changing routes
     await authClient.getSession();
     navigate('/dashboard', { replace: true });
   };
 
   return (
-    <div className={styles.root}>
-      <div className={styles.card}>
-        <div className={styles.header}>
-          <span className={styles.logoIcon}>✦</span>
-          <h1 className={styles.title}>NovaDesk</h1>
-          <p className={styles.subtitle}>Sign in to your support workspace</p>
-        </div>
-
-        <form className={styles.form} onSubmit={handleSubmit(onSubmit)} noValidate>
-          {/* Email */}
-          <div className={styles.field}>
-            <label htmlFor="email" className={styles.label}>Email</label>
-            <input
-              id="email"
-              type="email"
-              className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
-              placeholder="agent@company.com"
-              autoComplete="email"
-              {...register('email')}
-            />
-            {errors.email && (
-              <span className={styles.fieldError} role="alert">
-                {errors.email.message}
-              </span>
-            )}
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        {/* Card */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">NovaDesk</h1>
+            <p className="mt-1 text-sm text-gray-500">Sign in to your support workspace</p>
           </div>
 
-          {/* Password */}
-          <div className={styles.field}>
-            <label htmlFor="password" className={styles.label}>Password</label>
-            <input
-              id="password"
-              type="password"
-              className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
-              placeholder="••••••••"
-              autoComplete="current-password"
-              {...register('password')}
-            />
-            {errors.password && (
-              <span className={styles.fieldError} role="alert">
-                {errors.password.message}
-              </span>
-            )}
-          </div>
-
-          {/* Server / root error */}
-          {errors.root && (
-            <div className={styles.errorBox} role="alert">
-              <span className={styles.errorIcon}>⚠</span>
-              {errors.root.message}
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+            {/* Email */}
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@company.com"
+                {...register('email')}
+                className={`w-full px-3 py-2 text-sm rounded-lg border bg-white text-gray-900 placeholder-gray-400 outline-none transition
+                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                  ${errors.email ? 'border-red-400 focus:ring-red-400 focus:border-red-400' : 'border-gray-300'}`}
+              />
+              {errors.email && (
+                <p className="text-xs text-red-500" role="alert">{errors.email.message}</p>
+              )}
             </div>
-          )}
 
-          <button
-            type="submit"
-            id="login-submit"
-            className={`btn btn--primary ${styles.submitBtn}`}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <span className={styles.spinner} />
-                Signing in…
-              </>
-            ) : (
-              'Sign In'
+            {/* Password */}
+            <div className="space-y-1.5">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="••••••••"
+                {...register('password')}
+                className={`w-full px-3 py-2 text-sm rounded-lg border bg-white text-gray-900 placeholder-gray-400 outline-none transition
+                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                  ${errors.password ? 'border-red-400 focus:ring-red-400 focus:border-red-400' : 'border-gray-300'}`}
+              />
+              {errors.password && (
+                <p className="text-xs text-red-500" role="alert">{errors.password.message}</p>
+              )}
+            </div>
+
+            {/* Server / root error */}
+            {errors.root && (
+              <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5" role="alert">
+                <span className="text-red-500 text-sm">⚠</span>
+                <p className="text-sm text-red-600">{errors.root.message}</p>
+              </div>
             )}
-          </button>
-        </form>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              id="login-submit"
+              disabled={isSubmitting}
+              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition cursor-pointer"
+            >
+              {isSubmitting ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Signing in…
+                </>
+              ) : (
+                'Sign In'
+              )}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

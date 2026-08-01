@@ -1,24 +1,25 @@
 export function DashboardPage() {
+  const stats = [
+    { label: 'Open',     value: '—', color: 'text-blue-600',  bg: 'bg-blue-50',  border: 'border-blue-100' },
+    { label: 'Resolved', value: '—', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
+    { label: 'Closed',   value: '—', color: 'text-gray-500',  bg: 'bg-gray-50',  border: 'border-gray-200' },
+  ];
+
   return (
     <div>
-      <h1 style={{ marginBottom: '0.5rem' }}>Dashboard</h1>
-      <p style={{ color: 'var(--color-muted)', marginBottom: '2rem' }}>
-        Overview of your support tickets
-      </p>
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
+        <p className="mt-0.5 text-sm text-gray-500">Overview of your support tickets</p>
+      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-        {[
-          { label: 'Open',     value: '—', color: 'var(--color-brand-400)' },
-          { label: 'Resolved', value: '—', color: 'var(--color-success)' },
-          { label: 'Closed',   value: '—', color: 'var(--color-muted)' },
-        ].map((stat) => (
-          <div key={stat.label} className="card">
-            <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-              {stat.label}
-            </p>
-            <p style={{ fontSize: '2.5rem', fontWeight: 800, color: stat.color }}>
-              {stat.value}
-            </p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className={`rounded-xl border ${stat.border} ${stat.bg} p-5`}
+          >
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">{stat.label}</p>
+            <p className={`text-4xl font-bold ${stat.color}`}>{stat.value}</p>
           </div>
         ))}
       </div>
