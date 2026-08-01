@@ -1,5 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { authClient } from '../lib/authClient';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -21,30 +23,30 @@ export function AppLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* ── Top Navbar ──────────────────────────────────────────────── */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+      <header className="sticky top-0 z-30 bg-background border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
 
-            {/* Brand */}
-            <div className="flex items-center gap-8">
-              <span className="text-base font-bold text-gray-900 tracking-tight">
+            {/* Brand + Nav */}
+            <div className="flex items-center gap-6">
+              <span className="text-sm font-bold text-foreground tracking-tight">
                 NovaDesk
               </span>
 
-              {/* Nav links */}
-              <nav className="flex items-center gap-1">
+              <nav className="flex items-center gap-0.5">
                 {navItems.map((item) => (
                   <NavLink
                     key={item.to}
                     to={item.to}
                     className={({ isActive }) =>
-                      `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      cn(
+                        'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
                         isActive
-                          ? 'bg-gray-100 text-gray-900'
-                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                      }`
+                          ? 'bg-accent text-accent-foreground'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      )
                     }
                   >
                     {item.label}
@@ -54,25 +56,26 @@ export function AppLayout() {
             </div>
 
             {/* User area */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {/* Avatar + name */}
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-semibold flex items-center justify-center select-none">
+                <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center select-none">
                   {initials}
                 </div>
-                <span className="text-sm text-gray-700 font-medium hidden sm:block">
+                <span className="text-sm text-foreground font-medium hidden sm:block">
                   {user?.name ?? '—'}
                 </span>
               </div>
 
               {/* Sign out */}
-              <button
+              <Button
                 id="sign-out-btn"
+                variant="ghost"
+                size="sm"
                 onClick={handleSignOut}
-                className="text-sm text-gray-500 hover:text-gray-900 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
               >
                 Sign out
-              </button>
+              </Button>
             </div>
           </div>
         </div>

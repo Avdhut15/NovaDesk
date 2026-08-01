@@ -4,6 +4,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { authClient } from '../lib/authClient';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 // ─── Validation schema ────────────────────────────────────────────────────────
 const loginSchema = z.object({
@@ -58,86 +62,78 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        {/* Card */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">NovaDesk</h1>
-            <p className="mt-1 text-sm text-gray-500">Sign in to your support workspace</p>
-          </div>
+        <Card>
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-2xl font-bold tracking-tight">NovaDesk</CardTitle>
+            <CardDescription>Sign in to your support workspace</CardDescription>
+          </CardHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
-            {/* Email */}
-            <div className="space-y-1.5">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="you@company.com"
-                {...register('email')}
-                className={`w-full px-3 py-2 text-sm rounded-lg border bg-white text-gray-900 placeholder-gray-400 outline-none transition
-                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                  ${errors.email ? 'border-red-400 focus:ring-red-400 focus:border-red-400' : 'border-gray-300'}`}
-              />
-              {errors.email && (
-                <p className="text-xs text-red-500" role="alert">{errors.email.message}</p>
-              )}
-            </div>
-
-            {/* Password */}
-            <div className="space-y-1.5">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="••••••••"
-                {...register('password')}
-                className={`w-full px-3 py-2 text-sm rounded-lg border bg-white text-gray-900 placeholder-gray-400 outline-none transition
-                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                  ${errors.password ? 'border-red-400 focus:ring-red-400 focus:border-red-400' : 'border-gray-300'}`}
-              />
-              {errors.password && (
-                <p className="text-xs text-red-500" role="alert">{errors.password.message}</p>
-              )}
-            </div>
-
-            {/* Server / root error */}
-            {errors.root && (
-              <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5" role="alert">
-                <span className="text-red-500 text-sm">⚠</span>
-                <p className="text-sm text-red-600">{errors.root.message}</p>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+              {/* Email */}
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@company.com"
+                  aria-invalid={!!errors.email}
+                  {...register('email')}
+                />
+                {errors.email && (
+                  <p className="text-xs text-destructive" role="alert">{errors.email.message}</p>
+                )}
               </div>
-            )}
 
-            {/* Submit */}
-            <button
-              type="submit"
-              id="login-submit"
-              disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition cursor-pointer"
-            >
-              {isSubmitting ? (
-                <>
-                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                  Signing in…
-                </>
-              ) : (
-                'Sign In'
+              {/* Password */}
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  aria-invalid={!!errors.password}
+                  {...register('password')}
+                />
+                {errors.password && (
+                  <p className="text-xs text-destructive" role="alert">{errors.password.message}</p>
+                )}
+              </div>
+
+              {/* Server / root error */}
+              {errors.root && (
+                <div className="flex items-start gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2.5" role="alert">
+                  <span className="text-destructive text-sm">⚠</span>
+                  <p className="text-sm text-destructive">{errors.root.message}</p>
+                </div>
               )}
-            </button>
-          </form>
-        </div>
+
+              <Button
+                type="submit"
+                id="login-submit"
+                disabled={isSubmitting}
+                className="w-full mt-2"
+                size="lg"
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Signing in…
+                  </>
+                ) : (
+                  'Sign In'
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

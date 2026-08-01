@@ -31,16 +31,18 @@ NovaDesk solves the problem of high-volume support email management. Agents manu
 
 ```
 NovaDesk/
-├── client/          # React 19 + TypeScript + Vite (port 5173)
+├── client/          # React 19 + TypeScript + Vite 8 + Tailwind CSS v4 (port 5173)
 │   └── src/
-│       ├── layouts/ # AppLayout (sidebar shell)
-│       └── pages/   # LoginPage, DashboardPage, TicketsPage
+│       ├── components/ui/ # shadcn/ui components (Nova preset, Blue theme)
+│       ├── layouts/       # AppLayout (sticky top navbar shell)
+│       ├── lib/           # Better Auth client & utility helpers
+│       └── pages/         # LoginPage, DashboardPage, TicketsPage, NotFoundPage
 │
 └── server/          # Express 5 + TypeScript on Bun (port 3001)
-    ├── prisma/      # Schema & migrations
+    ├── prisma/      # Schema, migrations & seed script
     └── src/
         ├── config/      # Env validation
-        ├── lib/         # Prisma client singleton
+        ├── lib/         # Prisma client singleton & Better Auth server
         ├── middleware/  # Error handler, 404
         └── routes/      # API route modules
 ```
@@ -52,10 +54,12 @@ NovaDesk/
 | Layer | Technology |
 |---|---|
 | **Runtime & Package Manager** | [Bun](https://bun.sh/) 1.3 |
-| **Frontend** | React 19, TypeScript, Vite 8 |
+| **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS v4 |
+| **UI Components** | [shadcn/ui](https://ui.shadcn.com/) (Nova preset, Blue theme, `@base-ui/react` primitives) |
+| **Forms & Validation** | React Hook Form + Zod (`@hookform/resolvers/zod`) |
 | **Routing** | React Router 7 |
 | **Backend** | Express 5, TypeScript |
-| **Auth** | Session-based (`express-session`) |
+| **Auth** | [Better Auth](https://www.better-auth.com/) with Postgres sessions & RBAC roles (`ADMIN` / `AGENT`) |
 | **Database** | PostgreSQL 18 |
 | **ORM** | Prisma 7 with `@prisma/adapter-pg` |
 | **AI** | Gemini API (Google AI Studio) |
@@ -92,8 +96,13 @@ Edit `server/.env`:
 NODE_ENV=development
 PORT=3001
 CLIENT_URL=http://localhost:5173
-SESSION_SECRET=your-random-secret-here
 DATABASE_URL=postgresql://postgres:your_password@localhost:5432/novadesk
+BETTER_AUTH_SECRET=your-random-32-character-secret
+BETTER_AUTH_URL=http://localhost:3001
+
+# Seed credentials
+SEED_ADMIN_EMAIL=admin@example.com
+SEED_ADMIN_PASSWORD=password123
 ```
 
 ### 3. Set Up Database
@@ -127,8 +136,7 @@ bun run dev:client
 |---|---|---|
 | `GET` | `/health` | Server + DB health check |
 | `GET` | `/api` | API version info |
-| `POST` | `/api/auth/login` | *(Phase 2)* Session login |
-| `POST` | `/api/auth/logout` | *(Phase 2)* Session logout |
+| `ALL` | `/api/auth/*` | Better Auth handlers (sign in, sign out, session hydration) |
 | `GET` | `/api/tickets` | *(Phase 4)* List tickets |
 | `POST` | `/api/tickets` | *(Phase 4)* Create ticket |
 | `GET` | `/api/tickets/:id` | *(Phase 4)* Get ticket |
@@ -139,7 +147,10 @@ bun run dev:client
 ## 🗄️ Data Model
 
 ```
-User        — id, email, passwordHash, name, Role (ADMIN|AGENT)
+User        — id, email, name, emailVerified, image, createdAt, updatedAt, Role (ADMIN|AGENT)
+Session     — id, expiresAt, token, createdAt, updatedAt, ipAddress, userAgent, userId
+Account     — id, accountId, providerId, userId, accessToken, refreshToken, idToken, password
+Verification — id, identifier, value, expiresAt, createdAt, updatedAt
 Ticket      — id, subject, body, TicketStatus, TicketCategory, AI fields
 TicketReply — id, body, fromAgent, ticketId
 KnowledgeBase — id, title, content, category
@@ -163,7 +174,7 @@ bun run db:migrate      # Run Prisma migrations
 bun run db:push         # Push schema without migration file
 bun run db:generate     # Regenerate Prisma client
 bun run db:studio       # Open Prisma Studio UI
-bun run db:seed         # Seed the database
+bun run db:seed         # Seed the database with admin user
 bun run build           # Bundle server with Bun
 ```
 
@@ -172,7 +183,7 @@ bun run build           # Bundle server with Bun
 ## 🗺️ Roadmap
 
 - [x] Phase 1 — Project setup (monorepo, Express, React, PostgreSQL, Prisma)
-- [ ] Phase 2 — Authentication (login/logout, sessions, route guards)
+- [x] Phase 2 — Authentication (Better Auth setup, Postgres sessions, RBAC roles, login/logout, route guards)
 - [ ] Phase 3 — User management (admin: CRUD agents, RBAC)
 - [ ] Phase 4 — Ticket CRUD (create, list, filter, sort, detail view)
 - [ ] Phase 5 — AI features (classification, summaries, suggested replies)
@@ -180,8 +191,3 @@ bun run build           # Bundle server with Bun
 - [ ] Phase 7 — Dashboard (stats, charts, quick filters)
 - [ ] Phase 8 — Polish & deployment (Docker, CI/CD)
 
----
-
-## 📄 License
-
-MIT © 2026 NovaDesk
