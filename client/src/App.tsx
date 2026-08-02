@@ -6,6 +6,7 @@ import { authClient } from './lib/authClient';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { TicketsPage } from './pages/TicketsPage';
+import { UsersPage } from './pages/UsersPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
@@ -34,6 +35,20 @@ function ProtectedRoute() {
   return <Outlet />;
 }
 
+// ─── Admin-only route ─────────────────────────────────────────────────────────
+function AdminRoute() {
+  const { data: session, isPending } = authClient.useSession();
+
+  if (isPending) return null;
+
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Outlet />;
+}
+
 export function App() {
   return (
     <BrowserRouter>
@@ -47,6 +62,11 @@ export function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="tickets" element={<TicketsPage />} />
+
+            {/* Admin-only routes */}
+            <Route element={<AdminRoute />}>
+              <Route path="users" element={<UsersPage />} />
+            </Route>
           </Route>
         </Route>
 

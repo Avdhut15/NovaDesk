@@ -3,9 +3,13 @@ import { authClient } from '../lib/authClient';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const navItems = [
+const baseNavItems = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/tickets', label: 'Tickets' },
+];
+
+const adminNavItems = [
+  { to: '/users', label: 'Users' },
 ];
 
 export function AppLayout() {
@@ -13,6 +17,10 @@ export function AppLayout() {
   const { data: session } = authClient.useSession();
 
   const user = session?.user;
+  const role = (user as { role?: string } | undefined)?.role;
+  const navItems = role === 'admin'
+    ? [...baseNavItems, ...adminNavItems]
+    : baseNavItems;
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : '?';
