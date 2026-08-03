@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import axios, { isAxiosError } from 'axios';
 import { authClient } from '@/lib/authClient';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -98,39 +100,30 @@ function FilterTab({
   );
 }
 
+// ─── Query fn ────────────────────────────────────────────────────────────────
+async function fetchUsers(): Promise<UserRecord[]> {
+  const { data } = await axios.get<{ success: boolean; data: UserRecord[] }>(
+    '/api/users',
+    { withCredentials: true }
+  );
+  return data.data ?? [];
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function UsersPage() {
   const { data: session } = authClient.useSession();
 
-  const [users, setUsers] = useState<UserRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: users = [], isLoading, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsers,
+  });
+
+  const errorMessage = isAxiosError(error)
+    ? (error.response?.data as { error?: string })?.error ?? error.message
+    : error?.message ?? null;
+
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [search, setSearch] = useState('');
-
-  // ── Fetch ──────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchUsers() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch('/api/users', { credentials: 'include' });
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
-        const json = await res.json();
-        if (!cancelled) setUsers(json.data ?? []);
-      } catch (err) {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : 'Failed to load users');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    fetchUsers();
-    return () => { cancelled = true; };
-  }, []);
 
   // ── Filter + search (client-side) ──────────────────────────────────────────
   const filtered = users.filter((u) => {
@@ -159,7 +152,7 @@ export function UsersPage() {
             Manage agents and administrators
           </p>
         </div>
-        {!loading && (
+        {!isLoading && (
           <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
             {users.length} total
           </span>
@@ -219,13 +212,13 @@ export function UsersPage() {
         </div>
 
         {/* Error */}
-        {error && (
+        {errorMessage && (
           <div className="flex items-center gap-2 px-4 py-3 text-sm text-destructive bg-destructive/5 border-b border-destructive/10">
             <svg className="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="10" />
               <path d="M12 8v4m0 4h.01" />
             </svg>
-            {error}
+            {errorMessage}
           </div>
         )}
 
@@ -253,13 +246,13 @@ export function UsersPage() {
             </thead>
             <tbody>
               {/* Loading skeletons */}
-              {loading &&
+              {isLoading &&
                 Array.from({ length: 4 }).map((_, i) => (
                   <SkeletonRow key={i} />
                 ))}
 
               {/* Users */}
-              {!loading &&
+              {!isLoading &&
                 filtered.map((u) => {
                   const isSelf = session?.user.id === u.id;
                   return (
@@ -323,7 +316,7 @@ export function UsersPage() {
                 })}
 
               {/* Empty state */}
-              {!loading && !error && filtered.length === 0 && (
+              {!isLoading && !errorMessage && filtered.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
