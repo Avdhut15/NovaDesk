@@ -1,16 +1,12 @@
 import { Router } from 'express';
+import { usersRouter } from './users';
 
 export const apiRouter = Router();
 
-// ─── Route modules will be registered here in future phases ──────────────────
-// import { authRouter } from './auth';
-// import { usersRouter } from './users';
-// import { ticketsRouter } from './tickets';
+// ─── Route modules ────────────────────────────────────────────────────────────
+apiRouter.use('/users', usersRouter);
 
-// apiRouter.use('/auth', authRouter);
-// apiRouter.use('/users', usersRouter);
-// apiRouter.use('/tickets', ticketsRouter);
-
+// ─── Health / root ────────────────────────────────────────────────────────────
 apiRouter.get('/', (_req, res) => {
   res.json({ message: 'NovaDesk API v1' });
 });
