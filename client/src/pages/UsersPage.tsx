@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios, { isAxiosError } from 'axios';
 import { authClient } from '@/lib/authClient';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UserRecord {
@@ -109,8 +112,54 @@ async function fetchUsers(): Promise<UserRecord[]> {
   return data.data ?? [];
 }
 
+const createUserSchema = z.object({
+  name: z.string().min(3, 'Name must be at least 3 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters')
+});
+type CreateUserForm = z.infer<typeof createUserSchema>;
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function UsersPage() {
+  const queryClient = useQueryClient();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors }
+  } = useForm<CreateUserForm>({
+    resolver: zodResolver(createUserSchema)
+  });
+
+  const createUserMutation = useMutation({
+    mutationFn: async (data: CreateUserForm) => {
+      try {
+        const { data: result } = await axios.post('/api/users', {
+          email: data.email,
+          password: data.password,
+          name: data.name,
+        });
+        return result;
+      } catch (error) {
+        if (isAxiosError(error) && error.response?.data?.error) {
+          throw new Error(error.response.data.error);
+        }
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setIsCreateModalOpen(false);
+      reset();
+    }
+  });
+
+  const onSubmit = (data: CreateUserForm) => {
+    createUserMutation.mutate(data);
+  };
+
   const { data: session } = authClient.useSession();
 
   const { data: users = [], isLoading, error } = useQuery({
@@ -152,11 +201,19 @@ export function UsersPage() {
             Manage agents and administrators
           </p>
         </div>
-        {!isLoading && (
-          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
-            {users.length} total
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {!isLoading && (
+            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
+              {users.length} total
+            </span>
+          )}
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
+          >
+            Create User
+          </button>
+        </div>
       </div>
 
       {/* Card */}
@@ -338,6 +395,79 @@ export function UsersPage() {
           </table>
         </div>
       </div>
+
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl bg-background p-6 shadow-lg border border-border">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-foreground">Create New User</h2>
+              <button
+                onClick={() => setIsCreateModalOpen(false)}
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted"
+              >
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground">Name</label>
+                <input
+                  type="text"
+                  {...register('name')}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground">Email</label>
+                <input
+                  type="email"
+                  {...register('email')}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground">Password</label>
+                <input
+                  type="password"
+                  {...register('password')}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>}
+              </div>
+
+              {createUserMutation.error && (
+                <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
+                  {createUserMutation.error.message}
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createUserMutation.isPending}
+                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {createUserMutation.isPending ? 'Creating...' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
