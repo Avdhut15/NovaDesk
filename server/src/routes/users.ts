@@ -71,3 +71,46 @@ usersRouter.post('/', requireAuth({ role: 'admin' }), async (req, res) => {
 
   res.status(201).json({ success: true, data: { id: newUser.id, name: newUser.name, email: newUser.email } });
 });
+
+// ─── PUT /api/users/:id ───────────────────────────────────────────────────────
+// Edits a user. Admin-only.
+usersRouter.put('/:id', requireAuth({ role: 'admin' }), async (req, res) => {
+  const id = req.params.id as string;
+  const { name, email, password } = req.body;
+  if (!name || !email) {
+    res.status(400).json({ error: 'Name and email are required' });
+    return;
+  }
+
+  const existing = await prisma.user.findUnique({ where: { id } });
+  if (!existing) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+
+  if (email !== existing.email) {
+    const emailCheck = await prisma.user.findUnique({ where: { email } });
+    if (emailCheck) {
+      res.status(409).json({ error: 'Email already in use' });
+      return;
+    }
+  }
+
+  const updateData: any = { name, email, updatedAt: new Date() };
+
+  if (password) {
+    const hashedPassword = await hashPassword(password);
+    // Update the credential account
+    await prisma.account.updateMany({
+      where: { accountId: id, providerId: 'credential' },
+      data: { password: hashedPassword, updatedAt: new Date() },
+    });
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id },
+    data: updateData,
+  });
+
+  res.json({ success: true, data: { id: updatedUser.id, name: updatedUser.name, email: updatedUser.email } });
+});

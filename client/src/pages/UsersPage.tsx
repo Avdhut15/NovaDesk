@@ -56,7 +56,7 @@ function RoleBadge({ role }: { role: string | null }) {
 function SkeletonRow() {
   return (
     <tr className="border-b border-border last:border-0">
-      {[40, 160, 200, 70, 90].map((w, i) => (
+      {[40, 160, 200, 70, 90, 40].map((w, i) => (
         <td key={i} className="px-4 py-3">
           <div
             className="h-4 rounded bg-muted animate-pulse"
@@ -119,10 +119,20 @@ const createUserSchema = z.object({
 });
 type CreateUserForm = z.infer<typeof createUserSchema>;
 
+const editUserSchema = z.object({
+  name: z.string().min(3, 'Name must be at least 3 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().optional().refine(val => !val || val.length >= 8, {
+    message: 'Password must be at least 8 characters if provided',
+  })
+});
+type EditUserForm = z.infer<typeof editUserSchema>;
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function UsersPage() {
   const queryClient = useQueryClient();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editUser, setEditUser] = useState<UserRecord | null>(null);
 
   const {
     register,
@@ -131,6 +141,15 @@ export function UsersPage() {
     formState: { errors }
   } = useForm<CreateUserForm>({
     resolver: zodResolver(createUserSchema)
+  });
+
+  const {
+    register: registerEdit,
+    handleSubmit: handleSubmitEdit,
+    reset: resetEdit,
+    formState: { errors: editErrors }
+  } = useForm<EditUserForm>({
+    resolver: zodResolver(editUserSchema)
   });
 
   const createUserMutation = useMutation({
@@ -158,6 +177,32 @@ export function UsersPage() {
 
   const onSubmit = (data: CreateUserForm) => {
     createUserMutation.mutate(data);
+  };
+
+  const editUserMutation = useMutation({
+    mutationFn: async (data: EditUserForm) => {
+      try {
+        const { data: result } = await axios.put(`/api/users/${editUser?.id}`, {
+          email: data.email,
+          name: data.name,
+          password: data.password || undefined,
+        });
+        return result;
+      } catch (error) {
+        if (isAxiosError(error) && error.response?.data?.error) {
+          throw new Error(error.response.data.error);
+        }
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setEditUser(null);
+    }
+  });
+
+  const onEditSubmit = (data: EditUserForm) => {
+    editUserMutation.mutate(data);
   };
 
   const { data: session } = authClient.useSession();
@@ -299,6 +344,9 @@ export function UsersPage() {
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">
                   Joined
                 </th>
+                <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -367,6 +415,22 @@ export function UsersPage() {
                       {/* Joined date */}
                       <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">
                         {formatDate(u.createdAt)}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => {
+                            setEditUser(u);
+                            resetEdit({ name: u.name, email: u.email, password: '' });
+                          }}
+                          className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                          title="Edit user"
+                        >
+                          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
                       </td>
                     </tr>
                   );
@@ -462,6 +526,80 @@ export function UsersPage() {
                   className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {createUserMutation.isPending ? 'Creating...' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl bg-background p-6 shadow-lg border border-border">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-foreground">Edit User</h2>
+              <button
+                onClick={() => setEditUser(null)}
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted"
+              >
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitEdit(onEditSubmit)} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground">Name</label>
+                <input
+                  type="text"
+                  {...registerEdit('name')}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                {editErrors.name && <p className="mt-1 text-xs text-destructive">{editErrors.name.message}</p>}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground">Email</label>
+                <input
+                  type="email"
+                  {...registerEdit('email')}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                {editErrors.email && <p className="mt-1 text-xs text-destructive">{editErrors.email.message}</p>}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground">Password (leave blank to keep current)</label>
+                <input
+                  type="password"
+                  {...registerEdit('password')}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  placeholder="••••••••"
+                />
+                {editErrors.password && <p className="mt-1 text-xs text-destructive">{editErrors.password.message}</p>}
+              </div>
+
+              {editUserMutation.error && (
+                <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
+                  {editUserMutation.error.message}
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditUser(null)}
+                  className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editUserMutation.isPending}
+                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {editUserMutation.isPending ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
