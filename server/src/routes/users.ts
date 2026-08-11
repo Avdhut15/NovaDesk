@@ -14,7 +14,10 @@ usersRouter.get('/', requireAuth({ role: 'admin' }), async (req, res) => {
   const roleFilter = req.query.role as string | undefined;
 
   const users = await prisma.user.findMany({
-    where: roleFilter ? { role: roleFilter } : undefined,
+    where: {
+      deletedAt: null,
+      ...(roleFilter ? { role: roleFilter } : {}),
+    },
     select: {
       id: true,
       name: true,
@@ -113,4 +116,35 @@ usersRouter.put('/:id', requireAuth({ role: 'admin' }), async (req, res) => {
   });
 
   res.json({ success: true, data: { id: updatedUser.id, name: updatedUser.name, email: updatedUser.email } });
+});
+
+// ─── DELETE /api/users/:id ────────────────────────────────────────────────────
+// Soft deletes a user. Admins cannot be deleted. Admin-only.
+usersRouter.delete('/:id', requireAuth({ role: 'admin' }), async (req, res) => {
+  const id = req.params.id as string;
+
+  const existing = await prisma.user.findUnique({ where: { id } });
+  if (!existing || existing.deletedAt) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+
+  if (existing.role === 'admin') {
+    res.status(403).json({ error: 'Admins cannot be deleted' });
+    return;
+  }
+
+  await prisma.user.update({
+    where: { id },
+    data: { deletedAt: new Date() },
+  });
+
+  // Terminate active sessions and scramble password to prevent future logins
+  await prisma.session.deleteMany({ where: { userId: id } });
+  await prisma.account.updateMany({
+    where: { userId: id, providerId: 'credential' },
+    data: { password: `deleted_${crypto.randomUUID()}`, updatedAt: new Date() },
+  });
+
+  res.json({ success: true, message: 'User deleted successfully' });
 });

@@ -36,6 +36,7 @@ model user {
   createdAt     DateTime
   updatedAt     DateTime
   role          String?
+  deletedAt     DateTime?
 
   // Relations
   sessions      session[]

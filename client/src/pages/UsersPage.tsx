@@ -133,6 +133,7 @@ export function UsersPage() {
   const queryClient = useQueryClient();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editUser, setEditUser] = useState<UserRecord | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserRecord | null>(null);
 
   const {
     register,
@@ -204,6 +205,24 @@ export function UsersPage() {
   const onEditSubmit = (data: EditUserForm) => {
     editUserMutation.mutate(data);
   };
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await axios.delete(`/api/users/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setUserToDelete(null);
+    },
+    onError: (error) => {
+      if (isAxiosError(error) && error.response?.data?.error) {
+        alert(error.response.data.error);
+      } else {
+        alert('Failed to delete user');
+      }
+      setUserToDelete(null);
+    }
+  });
 
   const { data: session } = authClient.useSession();
 
@@ -419,18 +438,34 @@ export function UsersPage() {
 
                       {/* Actions */}
                       <td className="px-4 py-3 text-right">
-                        <button
-                          onClick={() => {
-                            setEditUser(u);
-                            resetEdit({ name: u.name, email: u.email, password: '' });
-                          }}
-                          className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                          title="Edit user"
-                        >
-                          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => {
+                              setEditUser(u);
+                              resetEdit({ name: u.name, email: u.email, password: '' });
+                            }}
+                            className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                            title="Edit user"
+                          >
+                            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          
+                          {u.role !== 'admin' ? (
+                            <button
+                              onClick={() => setUserToDelete(u)}
+                              className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                              title="Delete user"
+                            >
+                              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          ) : (
+                            <div className="size-7" />
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -603,6 +638,35 @@ export function UsersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {userToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-xl bg-background p-6 shadow-lg border border-border">
+            <h2 className="text-lg font-semibold text-foreground mb-2">Delete User</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              Are you sure you want to delete <strong>{userToDelete.name}</strong>? This action will disable their account.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setUserToDelete(null)}
+                className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-muted"
+                disabled={deleteUserMutation.isPending}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteUserMutation.mutate(userToDelete.id)}
+                disabled={deleteUserMutation.isPending}
+                className="rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+              >
+                {deleteUserMutation.isPending ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}
