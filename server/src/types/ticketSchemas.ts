@@ -76,6 +76,18 @@ export type AddReplyInput = z.infer<typeof AddReplySchema>;
 
 // ─── List Tickets Query Filters ───────────────────────────────────────────────
 
+/** Columns the client is allowed to sort by. Must be top-level Ticket scalar fields. */
+export const TicketSortByEnum = z.enum([
+  'createdAt',
+  'updatedAt',
+  'subject',
+  'status',
+  'category',
+  'fromEmail',
+]);
+
+export type TicketSortBy = z.infer<typeof TicketSortByEnum>;
+
 export const ListTicketsQuerySchema = z.object({
   status: TicketStatusEnum.optional(),
   category: TicketCategoryEnum.optional(),
@@ -84,6 +96,11 @@ export const ListTicketsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional().default(1),
   /** Paginate: results per page (max 100) */
   limit: z.coerce.number().int().min(1).max(100).optional().default(25),
+  /** Column to sort by (default: createdAt) */
+  sortBy: TicketSortByEnum.optional().default('createdAt'),
+  /** Sort direction (default: desc — newest first) */
+  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
 });
 
 export type ListTicketsQuery = z.infer<typeof ListTicketsQuerySchema>;
+

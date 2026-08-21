@@ -61,7 +61,7 @@ ticketsRouter.get('/', requireAuth(), async (req, res) => {
     return;
   }
 
-  const { status, category, assignedAgentId, page, limit } = parsed.data;
+  const { status, category, assignedAgentId, page, limit, sortBy, sortOrder } = parsed.data;
   const skip = (page - 1) * limit;
 
   const where = {
@@ -74,7 +74,7 @@ ticketsRouter.get('/', requireAuth(), async (req, res) => {
     prisma.ticket.findMany({
       where,
       select: ticketListSelect,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { [sortBy]: sortOrder },
       skip,
       take: limit,
     }),
