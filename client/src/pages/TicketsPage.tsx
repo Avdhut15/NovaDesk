@@ -40,106 +40,39 @@ interface PaginationMeta {
 }
 
 type StatusFilter = 'ALL' | TicketStatus;
+type CategoryFilter = 'ALL' | TicketCategory;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatRelativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
+function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
+    month: 'numeric',
     day: 'numeric',
     year: 'numeric',
   });
 }
 
-function formatCategory(cat: TicketCategory): string {
-  return { GENERAL_QUESTION: 'General', TECHNICAL_QUESTION: 'Technical', REFUND_REQUEST: 'Refund' }[cat];
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+function formatCategory(cat: TicketCategory | null): string {
+  if (!cat) return '—';
+  return {
+    GENERAL_QUESTION: 'general question',
+    TECHNICAL_QUESTION: 'technical question',
+    REFUND_REQUEST: 'refund request',
+  }[cat];
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: TicketStatus }) {
   const config = {
-    OPEN: { label: 'Open', dot: 'bg-blue-500', pill: 'bg-blue-50 text-blue-700 ring-blue-200' },
-    RESOLVED: { label: 'Resolved', dot: 'bg-green-500', pill: 'bg-green-50 text-green-700 ring-green-200' },
-    CLOSED: { label: 'Closed', dot: 'bg-muted-foreground/40', pill: 'bg-muted text-muted-foreground ring-border' },
+    OPEN: { label: 'open', cls: 'bg-blue-600 text-white' },
+    RESOLVED: { label: 'resolved', cls: 'bg-green-600 text-white' },
+    CLOSED: { label: 'closed', cls: 'bg-muted-foreground/50 text-white' },
   }[status];
 
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${config.pill}`}
-    >
-      <span className={`size-1.5 rounded-full ${config.dot}`} />
+    <span className={`inline-flex items-center justify-center w-20 rounded-full px-2.5 py-0.5 text-xs font-medium ${config.cls}`}>
       {config.label}
-    </span>
-  );
-}
-
-function CategoryBadge({ category }: { category: TicketCategory }) {
-  return (
-    <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-border">
-      {formatCategory(category)}
-    </span>
-  );
-}
-
-function FilterTab({
-  label,
-  count,
-  active,
-  onClick,
-}: {
-  label: string;
-  count: number;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-        active
-          ? 'bg-accent text-accent-foreground'
-          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-      }`}
-    >
-      {label}
-      <span
-        className={`rounded-full px-1.5 py-px text-xs font-semibold tabular-nums ${
-          active
-            ? 'bg-primary/15 text-primary'
-            : 'bg-muted-foreground/15 text-muted-foreground'
-        }`}
-      >
-        {count}
-      </span>
-    </button>
-  );
-}
-
-/** Sort direction indicator rendered in column headers. */
-function SortIcon({ direction }: { direction: 'asc' | 'desc' | false }) {
-  if (!direction)
-    return <span className="ml-1 text-[10px] text-muted-foreground/40 group-hover:text-muted-foreground transition-colors leading-none">⇅</span>;
-  return (
-    <span className="ml-1 text-[10px] text-foreground leading-none">
-      {direction === 'asc' ? '↑' : '↓'}
     </span>
   );
 }
@@ -149,13 +82,25 @@ function SkeletonRow({ cols }: { cols: number }) {
     <tr className="border-b border-border last:border-0">
       {Array.from({ length: cols }).map((_, i) => (
         <td key={i} className="px-4 py-3.5">
-          <div
-            className="h-4 rounded bg-muted animate-pulse"
-            style={{ width: i === 0 ? 280 : i === cols - 1 ? 80 : 100 }}
-          />
+          <div className="h-4 rounded bg-muted animate-pulse" style={{ width: i === 0 ? 220 : 90 }} />
         </td>
       ))}
     </tr>
+  );
+}
+
+/** Compact sort icon matching the screenshot ↑↓ style. */
+function SortIcon({ direction }: { direction: 'asc' | 'desc' | false }) {
+  if (!direction)
+    return (
+      <span className="ml-1 text-[10px] text-muted-foreground/50 group-hover:text-muted-foreground transition-colors leading-none select-none">
+        ↑↓
+      </span>
+    );
+  return (
+    <span className="ml-1 text-[10px] text-foreground leading-none select-none">
+      {direction === 'asc' ? '↑' : '↓'}
+    </span>
   );
 }
 
@@ -163,6 +108,7 @@ function SkeletonRow({ cols }: { cols: number }) {
 
 async function fetchTickets(params: {
   status?: TicketStatus;
+  category?: TicketCategory;
   page: number;
   limit: number;
   sortBy: SortableColumn;
@@ -175,6 +121,7 @@ async function fetchTickets(params: {
     sortOrder: params.sortOrder,
   });
   if (params.status) query.set('status', params.status);
+  if (params.category) query.set('category', params.category);
 
   const { data } = await axios.get<{
     success: boolean;
@@ -183,21 +130,6 @@ async function fetchTickets(params: {
   }>(`/api/tickets?${query}`, { withCredentials: true });
 
   return { tickets: data.data ?? [], pagination: data.pagination };
-}
-
-async function fetchAllCounts(): Promise<Record<StatusFilter, number>> {
-  const [all, open, resolved, closed] = await Promise.all([
-    axios.get<{ pagination: PaginationMeta }>('/api/tickets?limit=1', { withCredentials: true }),
-    axios.get<{ pagination: PaginationMeta }>('/api/tickets?limit=1&status=OPEN', { withCredentials: true }),
-    axios.get<{ pagination: PaginationMeta }>('/api/tickets?limit=1&status=RESOLVED', { withCredentials: true }),
-    axios.get<{ pagination: PaginationMeta }>('/api/tickets?limit=1&status=CLOSED', { withCredentials: true }),
-  ]);
-  return {
-    ALL: all.data.pagination.total,
-    OPEN: open.data.pagination.total,
-    RESOLVED: resolved.data.pagination.total,
-    CLOSED: closed.data.pagination.total,
-  };
 }
 
 // ─── Column definitions ───────────────────────────────────────────────────────
@@ -213,7 +145,7 @@ const columns = [
     header: 'Subject',
     enableSorting: true,
     cell: ({ getValue }) => (
-      <p className="font-medium text-foreground truncate">{getValue()}</p>
+      <span className="font-medium text-foreground">{getValue()}</span>
     ),
   }),
   columnHelper.display({
@@ -222,24 +154,14 @@ const columns = [
     enableSorting: false,
     cell: ({ row }) => {
       const t = row.original;
-      const initials = t.fromName
-        ? getInitials(t.fromName)
-        : t.fromEmail
-        ? t.fromEmail[0].toUpperCase()
-        : '?';
       return (
-        <div className="flex items-center gap-2">
-          <div className="size-7 shrink-0 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center select-none">
-            {initials}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm text-foreground truncate leading-snug">
-              {t.fromName ?? 'Manual'}
-            </p>
-            {t.fromEmail && (
-              <p className="text-xs text-muted-foreground truncate">{t.fromEmail}</p>
-            )}
-          </div>
+        <div className="flex flex-col min-w-0">
+          <span className="text-sm text-foreground truncate">
+            {t.fromName ?? 'Manual'}
+          </span>
+          {t.fromEmail && (
+            <span className="text-xs text-muted-foreground truncate">{t.fromEmail}</span>
+          )}
         </div>
       );
     },
@@ -254,33 +176,29 @@ const columns = [
     id: 'category',
     header: 'Category',
     enableSorting: true,
-    cell: ({ getValue }) => <CategoryBadge category={getValue() as TicketCategory} />,
+    cell: ({ getValue }) => (
+      <span className="text-sm text-muted-foreground">
+        {formatCategory(getValue() as TicketCategory)}
+      </span>
+    ),
   }),
   columnHelper.accessor('createdAt', {
     id: 'createdAt',
     header: 'Created',
     enableSorting: true,
     cell: ({ getValue }) => (
-      <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
-        {formatRelativeTime(getValue() as string)}
+      <span className="text-sm text-muted-foreground tabular-nums whitespace-nowrap">
+        {formatDate(getValue() as string)}
       </span>
     ),
   }),
 ];
 
-// Column visibility: responsive — hidden on smaller viewports via CSS classes
-const columnVisibilityClasses: Record<string, string> = {
-  subject: 'max-w-xs',
-  sender: 'hidden md:table-cell',
-  status: 'hidden sm:table-cell',
-  category: 'hidden lg:table-cell',
-  createdAt: '',
-};
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function TicketsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
@@ -295,10 +213,11 @@ export function TicketsPage() {
   const sortOrder = sorting[0]?.desc === false ? 'asc' : 'desc';
 
   const ticketsQuery = useQuery({
-    queryKey: ['tickets', statusFilter, page, sortBy, sortOrder],
+    queryKey: ['tickets', statusFilter, categoryFilter, page, sortBy, sortOrder],
     queryFn: () =>
       fetchTickets({
         status: statusFilter === 'ALL' ? undefined : statusFilter,
+        category: categoryFilter === 'ALL' ? undefined : categoryFilter,
         page,
         limit: LIMIT,
         sortBy,
@@ -306,15 +225,8 @@ export function TicketsPage() {
       }),
   });
 
-  const countsQuery = useQuery({
-    queryKey: ['ticket-counts'],
-    queryFn: fetchAllCounts,
-    staleTime: 30_000,
-  });
-
   const tickets = ticketsQuery.data?.tickets ?? [];
   const pagination = ticketsQuery.data?.pagination;
-  const counts = countsQuery.data;
 
   const errorMessage = isAxiosError(ticketsQuery.error)
     ? (ticketsQuery.error.response?.data as { error?: string })?.error ?? ticketsQuery.error.message
@@ -342,140 +254,161 @@ export function TicketsPage() {
     columns,
     state: { sorting },
     onSortingChange: (updater) => {
-      // Reset to page 1 whenever sort changes
       setPage(1);
       setSorting(updater);
     },
-    // Disable client-side sorting — the server handles it.
     manualSorting: true,
-    // Only one column at a time.
     enableMultiSort: false,
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const handleFilterChange = (f: StatusFilter) => {
-    setStatusFilter(f);
+  const handleStatusChange = (val: StatusFilter) => {
+    setStatusFilter(val);
     setPage(1);
   };
+
+  const handleCategoryChange = (val: CategoryFilter) => {
+    setCategoryFilter(val);
+    setPage(1);
+  };
+
+  // Shared select style
+  const selectCls =
+    'h-9 appearance-none rounded-md border border-input bg-background pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring cursor-pointer';
 
   return (
     <div>
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Tickets</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Manage and respond to support tickets
-          </p>
+      <div className="mb-5">
+        <h1 className="text-xl font-bold text-foreground">Tickets</h1>
+      </div>
+
+      {/* ── Toolbar ────────────────────────────────────────────────────────── */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[180px]">
+          <svg
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input
+            id="tickets-search"
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search tickets..."
+            className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring"
+          />
         </div>
+
+        {/* Status dropdown */}
+        <div className="relative">
+          <select
+            id="tickets-status-filter"
+            value={statusFilter}
+            onChange={(e) => handleStatusChange(e.target.value as StatusFilter)}
+            className={selectCls}
+          >
+            <option value="ALL">All statuses</option>
+            <option value="OPEN">Open</option>
+            <option value="RESOLVED">Resolved</option>
+            <option value="CLOSED">Closed</option>
+          </select>
+          <svg
+            className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </div>
+
+        {/* Category dropdown */}
+        <div className="relative">
+          <select
+            id="tickets-category-filter"
+            value={categoryFilter}
+            onChange={(e) => handleCategoryChange(e.target.value as CategoryFilter)}
+            className={selectCls}
+          >
+            <option value="ALL">All categories</option>
+            <option value="GENERAL_QUESTION">General question</option>
+            <option value="TECHNICAL_QUESTION">Technical question</option>
+            <option value="REFUND_REQUEST">Refund request</option>
+          </select>
+          <svg
+            className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </div>
+
+        {/* Total count */}
         {pagination && !ticketsQuery.isLoading && (
-          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
-            {counts?.ALL ?? pagination.total} total
+          <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+            {pagination.total} ticket{pagination.total !== 1 ? 's' : ''}
           </span>
         )}
       </div>
 
-      {/* ── Card ───────────────────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-        {/* Toolbar */}
-        <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          {/* Status filter tabs */}
-          <div className="flex items-center gap-0.5">
-            {(
-              [
-                { key: 'ALL', label: 'All' },
-                { key: 'OPEN', label: 'Open' },
-                { key: 'RESOLVED', label: 'Resolved' },
-                { key: 'CLOSED', label: 'Closed' },
-              ] as { key: StatusFilter; label: string }[]
-            ).map(({ key, label }) => (
-              <FilterTab
-                key={key}
-                label={label}
-                count={counts?.[key] ?? 0}
-                active={statusFilter === key}
-                onClick={() => handleFilterChange(key)}
-              />
-            ))}
-          </div>
-
-          {/* Search */}
-          <div className="relative">
-            <svg
-              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-            <input
-              id="tickets-search"
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search subject, email, name…"
-              className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring sm:w-64"
-            />
-          </div>
+      {/* ── Error banner ───────────────────────────────────────────────────── */}
+      {errorMessage && (
+        <div className="mb-4 flex items-center gap-2 rounded-md px-3 py-2.5 text-sm text-destructive bg-destructive/5 border border-destructive/10">
+          <svg className="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8v4m0 4h.01" />
+          </svg>
+          {errorMessage}
         </div>
+      )}
 
-        {/* Error banner */}
-        {errorMessage && (
-          <div className="flex items-center gap-2 px-4 py-3 text-sm text-destructive bg-destructive/5 border-b border-destructive/10">
-            <svg
-              className="size-4 shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 8v4m0 4h.01" />
-            </svg>
-            {errorMessage}
-          </div>
-        )}
-
-        {/* Table */}
+      {/* ── Table ──────────────────────────────────────────────────────────── */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id} className="border-b border-border bg-muted/40">
+                <tr key={headerGroup.id} className="border-b border-border">
                   {headerGroup.headers.map((header) => {
                     const canSort = header.column.getCanSort();
-                    const sorted = header.column.getIsSorted(); // false | 'asc' | 'desc'
-                    const visClass = columnVisibilityClasses[header.column.id] ?? '';
+                    const sorted = header.column.getIsSorted();
                     return (
                       <th
                         key={header.id}
-                        className={`px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide select-none ${
-                          header.column.id === 'createdAt' ? 'text-right' : ''
-                        } ${visClass}`}
+                        className="px-4 py-3 text-left text-sm font-medium text-foreground select-none"
                       >
                         {canSort ? (
                           <button
-                            className="group inline-flex items-center gap-0.5 hover:text-foreground transition-colors"
+                            className="group inline-flex items-center hover:text-foreground transition-colors"
                             onClick={header.column.getToggleSortingHandler()}
-                            title={
-                              sorted === false
-                                ? 'Sort ascending'
-                                : sorted === 'asc'
-                                ? 'Sort descending'
-                                : 'Clear sort'
-                            }
                           >
                             {flexRender(header.column.columnDef.header, header.getContext())}
                             <SortIcon direction={sorted} />
                           </button>
                         ) : (
-                          flexRender(header.column.columnDef.header, header.getContext())
+                          <span className="inline-flex items-center">
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            <SortIcon direction={false} />
+                          </span>
                         )}
                       </th>
                     );
@@ -486,8 +419,8 @@ export function TicketsPage() {
             <tbody>
               {/* Loading skeletons */}
               {ticketsQuery.isLoading &&
-                Array.from({ length: 6 }).map((_, i) => (
-                  <SkeletonRow key={i} cols={table.getAllColumns().length} />
+                Array.from({ length: 8 }).map((_, i) => (
+                  <SkeletonRow key={i} cols={columns.length} />
                 ))}
 
               {/* Data rows */}
@@ -497,44 +430,25 @@ export function TicketsPage() {
                     key={row.id}
                     className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
                   >
-                    {row.getVisibleCells().map((cell) => {
-                      const visClass = columnVisibilityClasses[cell.column.id] ?? '';
-                      return (
-                        <td
-                          key={cell.id}
-                          className={`px-4 py-3.5 ${cell.column.id === 'createdAt' ? 'text-right' : ''} ${visClass}`}
-                        >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
-                      );
-                    })}
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-4 py-3.5 max-w-[260px]">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
                   </tr>
                 ))}
 
               {/* Empty state */}
               {!ticketsQuery.isLoading && !errorMessage && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={table.getAllColumns().length} className="px-4 py-14 text-center">
+                  <td colSpan={columns.length} className="px-4 py-14 text-center">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <svg
-                        className="size-9 opacity-30"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                      >
+                      <svg className="size-9 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                       </svg>
                       <p className="text-sm font-medium">
-                        {search
-                          ? `No tickets match "${search}"`
-                          : `No ${statusFilter === 'ALL' ? '' : statusFilter.toLowerCase() + ' '}tickets`}
+                        {search ? `No tickets match "${search}"` : 'No tickets found'}
                       </p>
-                      {!search && statusFilter === 'ALL' && (
-                        <p className="text-xs">
-                          Tickets created via email ingest or manually will appear here.
-                        </p>
-                      )}
                     </div>
                   </td>
                 </tr>
@@ -559,9 +473,7 @@ export function TicketsPage() {
                 ← Prev
               </button>
               {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                .filter(
-                  (p) => p === 1 || p === pagination.totalPages || Math.abs(p - page) <= 1,
-                )
+                .filter((p) => p === 1 || p === pagination.totalPages || Math.abs(p - page) <= 1)
                 .reduce<(number | '…')[]>((acc, p, idx, arr) => {
                   if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('…');
                   acc.push(p);
@@ -569,9 +481,7 @@ export function TicketsPage() {
                 }, [])
                 .map((p, i) =>
                   p === '…' ? (
-                    <span key={`ellipsis-${i}`} className="px-1 text-xs text-muted-foreground">
-                      …
-                    </span>
+                    <span key={`ellipsis-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
                   ) : (
                     <button
                       key={p}
