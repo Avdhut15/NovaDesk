@@ -46,6 +46,7 @@ const ticketDetailSelect = {
       body: true,
       fromAgent: true,
       createdAt: true,
+      createdBy: { select: { id: true, name: true, role: true } },
     },
   },
 } as const;
@@ -302,8 +303,15 @@ ticketsRouter.post('/:id/replies', requireAuth(), async (req, res) => {
       ticketId: id,
       body: parsed.data.body,
       fromAgent: parsed.data.fromAgent,
+      createdById: req.user?.id,
     },
-    select: { id: true, body: true, fromAgent: true, createdAt: true },
+    select: {
+      id: true,
+      body: true,
+      fromAgent: true,
+      createdAt: true,
+      createdBy: { select: { id: true, name: true, role: true } },
+    },
   });
 
   // Automatically re-open a RESOLVED ticket when a new reply comes in

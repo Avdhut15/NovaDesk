@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios, { isAxiosError } from 'axios';
@@ -12,6 +13,7 @@ interface TicketReply {
   body: string;
   fromAgent: boolean;
   createdAt: string;
+  createdBy: { id: string; name: string; role: string } | null;
 }
 
 interface TicketDetail {
@@ -49,6 +51,11 @@ function formatDate(iso: string): string {
   });
 }
 
+function getInitials(name: string): string {
+  if (!name) return '?';
+  return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+}
+
 // ─── Data Fetching ────────────────────────────────────────────────────────────
 
 async function fetchTicket(id: string): Promise<TicketDetail> {
@@ -70,6 +77,15 @@ async function fetchAgents(): Promise<Agent[]> {
 async function patchTicket(ticketId: string, payload: Record<string, unknown>): Promise<TicketDetail> {
   const { data } = await axios.patch<{ success: boolean; data: TicketDetail }>(
     `/api/tickets/${ticketId}`,
+    payload,
+    { withCredentials: true },
+  );
+  return data.data;
+}
+
+async function postReply(ticketId: string, payload: { body: string; fromAgent: boolean }): Promise<TicketReply> {
+  const { data } = await axios.post<{ success: boolean; data: TicketReply }>(
+    `/api/tickets/${ticketId}/replies`,
     payload,
     { withCredentials: true },
   );
@@ -136,12 +152,24 @@ export function TicketDetailPage() {
     queryFn: fetchAgents,
   });
 
+  const [replyBody, setReplyBody] = useState('');
+  const [replyFromAgent, setReplyFromAgent] = useState(true);
+
   const mutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => patchTicket(id!, payload),
     onSuccess: (updated) => {
       // Update this ticket's cache instantly
       queryClient.setQueryData(['ticket', id], updated);
       // Invalidate the list so it's fresh when navigating back
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+    },
+  });
+
+  const replyMutation = useMutation({
+    mutationFn: () => postReply(id!, { body: replyBody, fromAgent: replyFromAgent }),
+    onSuccess: () => {
+      setReplyBody('');
+      queryClient.invalidateQueries({ queryKey: ['ticket', id] });
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
     },
   });
@@ -256,11 +284,16 @@ export function TicketDetailPage() {
                             ? 'bg-primary/15 text-primary'
                             : 'bg-muted text-muted-foreground'
                         }`}>
-                          {reply.fromAgent ? 'A' : 'C'}
+                          {reply.fromAgent ? (reply.createdBy ? getInitials(reply.createdBy.name) : 'A') : 'C'}
                         </div>
                         <span className="text-xs font-medium text-foreground">
-                          {reply.fromAgent ? 'Agent' : 'Customer'}
+                          {reply.fromAgent ? (reply.createdBy ? reply.createdBy.name : 'Agent') : 'Customer'}
                         </span>
+                        {reply.fromAgent && reply.createdBy?.role === 'admin' && (
+                          <span className="text-[10px] uppercase font-bold text-primary ml-1 bg-primary/10 px-1.5 py-0.5 rounded">
+                            Admin
+                          </span>
+                        )}
                       </div>
                       <span className="text-xs text-muted-foreground">
                         {formatDate(reply.createdAt)}
@@ -279,6 +312,63 @@ export function TicketDetailPage() {
                 No replies yet.
               </div>
             )}
+
+            {/* ── Reply form ────────────────────────────────────────────────── */}
+            <div className="mt-6 rounded-lg border border-border bg-card p-5">
+              <p className="font-semibold text-foreground text-sm mb-3">Add a reply</p>
+              
+              <div className="mb-3">
+                <textarea
+                  className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring placeholder:text-muted-foreground disabled:opacity-50 resize-y"
+                  placeholder="Type your reply here..."
+                  value={replyBody}
+                  onChange={(e) => setReplyBody(e.target.value)}
+                  disabled={replyMutation.isPending}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      className="accent-primary"
+                      checked={replyFromAgent}
+                      onChange={() => setReplyFromAgent(true)}
+                      disabled={replyMutation.isPending}
+                    />
+                    Reply as Agent
+                  </label>
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 cursor-pointer ml-3">
+                    <input
+                      type="radio"
+                      className="accent-primary"
+                      checked={!replyFromAgent}
+                      onChange={() => setReplyFromAgent(false)}
+                      disabled={replyMutation.isPending}
+                    />
+                    Simulate Customer
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {replyMutation.isError && (
+                    <span className="text-xs text-destructive">
+                      {isAxiosError(replyMutation.error) 
+                        ? (replyMutation.error.response?.data as { error?: string })?.error ?? replyMutation.error.message 
+                        : replyMutation.error.message}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => replyMutation.mutate()}
+                    disabled={!replyBody.trim() || replyMutation.isPending}
+                    className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    {replyMutation.isPending ? 'Sending...' : 'Send reply'}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* ── Right: sidebar ──────────────────────────────────────────────── */}
