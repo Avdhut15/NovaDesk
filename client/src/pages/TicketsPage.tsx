@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios, { isAxiosError } from 'axios';
 import {
@@ -144,8 +145,13 @@ const columns = [
     id: 'subject',
     header: 'Subject',
     enableSorting: true,
-    cell: ({ getValue }) => (
-      <span className="font-medium text-foreground">{getValue()}</span>
+    cell: ({ getValue, row }) => (
+      <Link
+        to={`/tickets/${row.original.id}`}
+        className="font-medium text-foreground hover:text-primary hover:underline transition-colors"
+      >
+        {getValue()}
+      </Link>
     ),
   }),
   columnHelper.display({

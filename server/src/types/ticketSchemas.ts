@@ -103,4 +103,3 @@ export const ListTicketsQuerySchema = z.object({
 });
 
 export type ListTicketsQuery = z.infer<typeof ListTicketsQuerySchema>;
-

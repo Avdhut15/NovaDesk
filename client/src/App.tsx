@@ -6,6 +6,7 @@ import { authClient } from './lib/authClient';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { TicketsPage } from './pages/TicketsPage';
+import { TicketDetailPage } from './pages/TicketDetailPage';
 import { UsersPage } from './pages/UsersPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
@@ -62,6 +63,7 @@ export function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="tickets" element={<TicketsPage />} />
+            <Route path="tickets/:id" element={<TicketDetailPage />} />
 
             {/* Admin-only routes */}
             <Route element={<AdminRoute />}>
