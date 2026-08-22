@@ -212,6 +212,7 @@ export function UsersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
       setUserToDelete(null);
     },
     onError: (error) => {

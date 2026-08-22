@@ -158,5 +158,11 @@ usersRouter.delete('/:id', requireAuth({ role: 'admin' }), async (req, res) => {
     data: { password: `deleted_${crypto.randomUUID()}`, updatedAt: new Date() },
   });
 
+  // Unassign any tickets currently assigned to this user
+  await prisma.ticket.updateMany({
+    where: { assignedAgentId: id },
+    data: { assignedAgentId: null },
+  });
+
   res.json({ success: true, message: 'User deleted successfully' });
 });
