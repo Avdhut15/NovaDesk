@@ -6,17 +6,6 @@ import { Role } from '../types/roles';
 
 export const usersRouter = Router();
 
-// ─── GET /api/users/agents ────────────────────────────────────────────────────
-// Returns all non-deleted users as a lightweight list for dropdowns.
-// Available to any authenticated user (not admin-only).
-usersRouter.get('/agents', requireAuth(), async (_req, res) => {
-  const agents = await prisma.user.findMany({
-    where: { deletedAt: null },
-    select: { id: true, name: true, email: true, role: true },
-    orderBy: { name: 'asc' },
-  });
-  res.json({ success: true, data: agents });
-});
 
 // ─── GET /api/users ───────────────────────────────────────────────────────────
 // Returns all users (id, name, email, role, createdAt, emailVerified).
