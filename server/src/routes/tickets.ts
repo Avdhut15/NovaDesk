@@ -314,3 +314,80 @@ Requirements:
     res.status(500).json({ error: `AI error: ${message}` });
   }
 });
+
+// ─── POST /api/tickets/:id/summarize ──────────────────────────────────────────
+// Generates (or re-generates) an AI summary of the ticket + conversation thread.
+ticketsRouter.post('/:id/summarize', requireAuth(), async (req, res) => {
+  const id = req.params.id as string;
+
+  try {
+    const ticket = await prisma.ticket.findUnique({
+      where: { id },
+      select: {
+        subject: true,
+        body: true,
+        fromName: true,
+        category: true,
+        status: true,
+        replies: {
+          orderBy: { createdAt: 'asc' },
+          select: {
+            body: true,
+            fromAgent: true,
+            createdAt: true,
+            createdBy: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    if (!ticket) {
+      res.status(404).json({ error: 'Ticket not found' });
+      return;
+    }
+
+    // Build a readable conversation transcript for the model
+    const conversationLines: string[] = [
+      `Subject: ${ticket.subject}`,
+      `Category: ${ticket.category.replace(/_/g, ' ')}`,
+      `Status: ${ticket.status}`,
+      `Customer: ${ticket.fromName ?? 'Unknown'}`,
+      '',
+      `--- Original Message ---`,
+      ticket.body,
+    ];
+
+    if (ticket.replies.length > 0) {
+      conversationLines.push('', '--- Conversation Thread ---');
+      for (const reply of ticket.replies) {
+        const author = reply.fromAgent
+          ? (reply.createdBy?.name ?? 'Agent')
+          : (ticket.fromName ?? 'Customer');
+        const date = new Date(reply.createdAt).toLocaleDateString('en-US', {
+          month: 'short', day: 'numeric', year: 'numeric',
+        });
+        conversationLines.push(`[${author} — ${date}]: ${reply.body}`);
+      }
+    }
+
+    const transcript = conversationLines.join('\n');
+
+    const { text } = await generateText({
+      model: google(AI_MODEL),
+      system: `You are a helpful assistant summarizing customer support tickets.
+Your summary should be concise (3–5 sentences max) and cover:
+1. What the customer's issue or request is.
+2. The current status of the resolution.
+3. Any key actions taken or next steps (if available).
+Write in clear, plain English. Do NOT use bullet points or headers — write as a short paragraph.
+Do NOT add any preamble like "Here is a summary:" — return only the summary text itself.`,
+      prompt: `Please summarize the following support ticket conversation:\n\n${transcript}`,
+    });
+
+    res.json({ success: true, data: { summary: text } });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[AI] summarize error:', message);
+    res.status(500).json({ error: `AI error: ${message}` });
+  }
+});

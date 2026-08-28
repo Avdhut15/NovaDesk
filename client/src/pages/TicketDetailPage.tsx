@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios, { isAxiosError } from 'axios';
 import { TicketDetail } from '../components/TicketDetail';
+import { TicketSummary } from '../components/TicketSummary';
 import { UpdateTicket } from '../components/UpdateTicket';
 import { ReplyThread, type TicketReply } from '../components/ReplyThread';
 import { ReplyForm } from '../components/ReplyForm';
@@ -170,6 +171,7 @@ export function TicketDetailPage() {
               createdAt={ticket.createdAt}
               updatedAt={ticket.updatedAt}
             />
+            <TicketSummary ticketId={ticket.id} />
             <ReplyThread replies={ticket.replies} />
             <ReplyForm
               ticketId={ticket.id}
