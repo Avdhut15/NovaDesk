@@ -3,6 +3,7 @@ import { usersRouter } from './users';
 import { ticketsRouter } from './tickets';
 import { repliesRouter } from './replies';
 import { agentsRouter } from './agents';
+import { aiTicketsRouter } from './aiTickets';
 
 export const apiRouter = Router();
 
@@ -10,6 +11,7 @@ export const apiRouter = Router();
 apiRouter.use('/users', usersRouter);
 apiRouter.use('/tickets', ticketsRouter);
 apiRouter.use('/tickets/:ticketId/replies', repliesRouter);
+apiRouter.use('/tickets/:id', aiTicketsRouter);
 apiRouter.use('/agents', agentsRouter);
 
 

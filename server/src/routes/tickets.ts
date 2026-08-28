@@ -7,17 +7,7 @@ import {
   IngestEmailSchema,
   ListTicketsQuerySchema,
 } from '../types/ticketSchemas';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { generateText } from 'ai';
-import { env } from '../config/env';
-import { z } from 'zod';
-
-const google = createGoogleGenerativeAI({ apiKey: env.GEMINI_API_KEY });
-const AI_MODEL = 'gemini-3.5-flash-lite';
-
-const PolishReplySchema = z.object({
-  body: z.string().min(1, 'Reply body is required'),
-});
+import { classifyTicketAsync } from './aiTickets';
 
 export const ticketsRouter = Router();
 
@@ -140,12 +130,18 @@ ticketsRouter.post('/ingest', async (req, res) => {
       fromName,
       emailThreadId,
       status: 'OPEN',
-      category: 'GENERAL_QUESTION',
+      category: 'GENERAL_QUESTION', // Default — overwritten async by AI below
     },
     select: ticketDetailSelect,
   });
 
+  // Respond immediately — don't wait for AI
   res.status(201).json({ success: true, data: ticket });
+
+  // Classify in background (non-blocking)
+  classifyTicketAsync(ticket.id, subject, body).catch((err: unknown) => {
+    console.error('[AI] classify error (ingest):', err instanceof Error ? err.message : err);
+  });
 });
 
 // ─── GET /api/tickets/:id ─────────────────────────────────────────────────────
@@ -203,7 +199,15 @@ ticketsRouter.post('/', requireAuth(), async (req, res) => {
     select: ticketDetailSelect,
   });
 
+  // Respond immediately — don't wait for AI
   res.status(201).json({ success: true, data: ticket });
+
+  // Classify in background only when category wasn't explicitly set
+  if (!parsed.data.category) {
+    classifyTicketAsync(ticket.id, subject, body).catch((err: unknown) => {
+      console.error('[AI] classify error (manual):', err instanceof Error ? err.message : err);
+    });
+  }
 });
 
 // ─── PATCH /api/tickets/:id ───────────────────────────────────────────────────
@@ -262,132 +266,4 @@ ticketsRouter.delete('/:id', requireAuth({ role: 'admin' }), async (req, res) =>
   await prisma.ticket.delete({ where: { id } });
 
   res.json({ success: true, message: 'Ticket deleted successfully' });
-});
-
-// ─── POST /api/tickets/:id/polish-reply ───────────────────────────────────────
-// Takes a draft reply from an agent, customizes it with customer/agent names,
-// and improves it using Gemini 3.5 Flash Lite.
-ticketsRouter.post('/:id/polish-reply', requireAuth(), async (req, res) => {
-  const id = req.params.id as string;
-  const parsed = PolishReplySchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
-    return;
-  }
-
-  const { body } = parsed.data;
-
-  try {
-    const ticket = await prisma.ticket.findUnique({
-      where: { id },
-      select: { fromName: true },
-    });
-
-    if (!ticket) {
-      res.status(404).json({ error: 'Ticket not found' });
-      return;
-    }
-
-    const customerFullName = ticket.fromName || 'Customer';
-    const customerFirstName = customerFullName.trim().split(/\s+/)[0];
-    const agentName = req.user?.name || 'Support Agent';
-
-    const { text } = await generateText({
-      model: google(AI_MODEL),
-      system: `You are a professional customer support agent. 
-Your job is to polish and improve draft replies written by support agents.
-
-Requirements:
-1. Address the customer by their first name: "${customerFirstName}" at the very beginning of the reply (e.g. "Hi ${customerFirstName},").
-2. Ensure the response is professionally signed off with the support agent's name: "${agentName}" at the end (e.g., "Best regards,\n${agentName}").
-3. Improve the tone, clarity, grammar, and professionalism of the reply.
-4. Keep the same meaning and intent — do NOT add new information or change the core message.
-5. Do NOT add any preamble like "Here is the polished version:" — return only the polished support reply text itself.
-6. Keep it concise, friendly, and warm.`,
-      prompt: `Please polish the following draft support reply:\n\n${body}`,
-    });
-
-    res.json({ success: true, data: { polished: text } });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error('[AI] polish-reply error:', message);
-    res.status(500).json({ error: `AI error: ${message}` });
-  }
-});
-
-// ─── POST /api/tickets/:id/summarize ──────────────────────────────────────────
-// Generates (or re-generates) an AI summary of the ticket + conversation thread.
-ticketsRouter.post('/:id/summarize', requireAuth(), async (req, res) => {
-  const id = req.params.id as string;
-
-  try {
-    const ticket = await prisma.ticket.findUnique({
-      where: { id },
-      select: {
-        subject: true,
-        body: true,
-        fromName: true,
-        category: true,
-        status: true,
-        replies: {
-          orderBy: { createdAt: 'asc' },
-          select: {
-            body: true,
-            fromAgent: true,
-            createdAt: true,
-            createdBy: { select: { name: true } },
-          },
-        },
-      },
-    });
-
-    if (!ticket) {
-      res.status(404).json({ error: 'Ticket not found' });
-      return;
-    }
-
-    // Build a readable conversation transcript for the model
-    const conversationLines: string[] = [
-      `Subject: ${ticket.subject}`,
-      `Category: ${ticket.category.replace(/_/g, ' ')}`,
-      `Status: ${ticket.status}`,
-      `Customer: ${ticket.fromName ?? 'Unknown'}`,
-      '',
-      `--- Original Message ---`,
-      ticket.body,
-    ];
-
-    if (ticket.replies.length > 0) {
-      conversationLines.push('', '--- Conversation Thread ---');
-      for (const reply of ticket.replies) {
-        const author = reply.fromAgent
-          ? (reply.createdBy?.name ?? 'Agent')
-          : (ticket.fromName ?? 'Customer');
-        const date = new Date(reply.createdAt).toLocaleDateString('en-US', {
-          month: 'short', day: 'numeric', year: 'numeric',
-        });
-        conversationLines.push(`[${author} — ${date}]: ${reply.body}`);
-      }
-    }
-
-    const transcript = conversationLines.join('\n');
-
-    const { text } = await generateText({
-      model: google(AI_MODEL),
-      system: `You are a helpful assistant summarizing customer support tickets.
-Your summary should be concise (3–5 sentences max) and cover:
-1. What the customer's issue or request is.
-2. The current status of the resolution.
-3. Any key actions taken or next steps (if available).
-Write in clear, plain English. Do NOT use bullet points or headers — write as a short paragraph.
-Do NOT add any preamble like "Here is a summary:" — return only the summary text itself.`,
-      prompt: `Please summarize the following support ticket conversation:\n\n${transcript}`,
-    });
-
-    res.json({ success: true, data: { summary: text } });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error('[AI] summarize error:', message);
-    res.status(500).json({ error: `AI error: ${message}` });
-  }
 });
