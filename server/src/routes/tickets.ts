@@ -7,7 +7,7 @@ import {
   IngestEmailSchema,
   ListTicketsQuerySchema,
 } from '../types/ticketSchemas';
-import { classifyTicketAsync } from './aiTickets';
+import { boss } from '../lib/queue';
 
 export const ticketsRouter = Router();
 
@@ -138,9 +138,9 @@ ticketsRouter.post('/ingest', async (req, res) => {
   // Respond immediately — don't wait for AI
   res.status(201).json({ success: true, data: ticket });
 
-  // Classify in background (non-blocking)
-  classifyTicketAsync(ticket.id, subject, body).catch((err: unknown) => {
-    console.error('[AI] classify error (ingest):', err instanceof Error ? err.message : err);
+  // Classify in background via pg-boss
+  boss.send('classify-ticket', { ticketId: ticket.id, subject, body }).catch((err: unknown) => {
+    console.error('[Queue] error enqueuing classify-ticket (ingest):', err instanceof Error ? err.message : err);
   });
 });
 
@@ -204,8 +204,8 @@ ticketsRouter.post('/', requireAuth(), async (req, res) => {
 
   // Classify in background only when category wasn't explicitly set
   if (!parsed.data.category) {
-    classifyTicketAsync(ticket.id, subject, body).catch((err: unknown) => {
-      console.error('[AI] classify error (manual):', err instanceof Error ? err.message : err);
+    boss.send('classify-ticket', { ticketId: ticket.id, subject, body }).catch((err: unknown) => {
+      console.error('[Queue] error enqueuing classify-ticket (manual):', err instanceof Error ? err.message : err);
     });
   }
 });

@@ -67,9 +67,18 @@ app.use(notFound);
 app.use(errorHandler);
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
-app.listen(env.PORT, () => {
+app.listen(env.PORT, async () => {
   console.log(`🚀 NovaDesk server running on http://localhost:${env.PORT}`);
   console.log(`🔐 Auth available at http://localhost:${env.PORT}/api/auth`);
+  
+  // Start pg-boss queue
+  const { boss } = await import('./lib/queue');
+  await boss.start();
+  console.log('[pg-boss] Queue started');
+  
+  // Register workers
+  const { startWorkers } = await import('./workers');
+  await startWorkers(boss);
 });
 
 export default app;
