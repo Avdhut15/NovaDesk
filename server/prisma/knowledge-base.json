@@ -1,0 +1,52 @@
+[
+  {
+    "title": "Account & Login Issues",
+    "content": "If you forgot your password: 1. Go to the login page. 2. Click Forgot Password. 3. Enter your registered email address. 4. Follow the instructions in the reset email. If you do not receive the email within 10 minutes, check your spam/promotions folder. If it still has not arrived, it may be due to an incorrect email entry or the account being created with a different email. Contact support if the issue persists.",
+    "category": "TECHNICAL_QUESTION"
+  },
+  {
+    "title": "Course Access & Purchases",
+    "content": "If you purchased a course but cannot see it, check your receipt email for confirmation. Possible reasons include: you are logged in with a different email address, the payment is still processing, or the purchase was not completed successfully. Courses are non-transferable and are permanently tied to the purchasing account.",
+    "category": "GENERAL_QUESTION"
+  },
+  {
+    "title": "Lifetime Access",
+    "content": "Lifetime Access means you pay once and keep access permanently. You will also receive future updates for that specific course. Note that Lifetime Access applies only to the purchased course.",
+    "category": "GENERAL_QUESTION"
+  },
+  {
+    "title": "Refund Policy & Requests",
+    "content": "We offer a 30-day money-back guarantee. A full refund is available if requested within 30 days of purchase. A partial refund may be available if less than 80% of the course has been completed. No refund is granted if 80% or more of the course has been completed. Refunds are processed within 5-10 business days. To request a refund, contact support within 30 days of purchase, provide your order receipt, and include the reason for your request.",
+    "category": "REFUND_REQUEST"
+  },
+  {
+    "title": "Certificates of Completion",
+    "content": "Yes, we provide certificates! A certificate is issued upon course completion and is available inside your dashboard. Please note that these certificates are not accredited degrees.",
+    "category": "GENERAL_QUESTION"
+  },
+  {
+    "title": "Downloading Content & Offline Viewing",
+    "content": "Videos are streamed online and offline video downloads are not supported. However, any associated source code or resource files are fully downloadable.",
+    "category": "GENERAL_QUESTION"
+  },
+  {
+    "title": "Technical Issues: Video Playback",
+    "content": "If videos are not playing, try the following: clear your browser cache, use the latest version of Chrome or Edge, disable browser extensions, and check your internet connection. If the video quality is low, please note that quality adjusts automatically based on your internet speed. Ensure you have a stable connection.",
+    "category": "TECHNICAL_QUESTION"
+  },
+  {
+    "title": "Coupon Codes & Discounts",
+    "content": "If your coupon code doesn't work, it may be because: the coupon has expired, it was already used, or it is not valid for the selected course. Only one coupon may be applied per purchase.",
+    "category": "GENERAL_QUESTION"
+  },
+  {
+    "title": "Account Changes: Email Updates",
+    "content": "To change your email address, you must contact support directly. Please provide your current email, your new email, and proof of purchase (if requested).",
+    "category": "GENERAL_QUESTION"
+  },
+  {
+    "title": "Internal Policy: Escalation Rules",
+    "content": "INTERNAL POLICY: The system must escalate to a human agent if: the user threatens legal action, the user requests a refund outside the 30-day window, the user disputes a charge or mentions a chargeback, the issue involves account security concerns, or the system confidence score is low. Do not auto-resolve these tickets.",
+    "category": "GENERAL_QUESTION"
+  }
+]

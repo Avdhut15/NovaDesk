@@ -2,6 +2,9 @@ import { PrismaClient, TicketStatus, TicketCategory } from '../src/generated/pri
 import { PrismaPg } from '@prisma/adapter-pg';
 import { hashPassword } from 'better-auth/crypto';
 import { Role } from '../src/types/roles';
+import * as fs from 'fs';
+import * as path from 'path';
+
 
 // ─── DB Client ────────────────────────────────────────────────────────────────
 const adapter = new PrismaPg({
@@ -127,27 +130,17 @@ async function main() {
   const agent = await createUser(SEED_AGENT_EMAIL, 'Agent 1', Role.AGENT, SEED_AGENT_PASSWORD);
 
   // 3. Seed Knowledge Base
+  // Clear old KB articles first
+  await prisma.knowledgeBase.deleteMany({});
+
+  const kbPath = path.join(process.cwd(), 'prisma', 'knowledge-base.json');
+  const kbData = JSON.parse(fs.readFileSync(kbPath, 'utf8'));
+
   await prisma.knowledgeBase.createMany({
-    data: [
-      {
-        title: 'How to request a refund',
-        content: 'Refunds are processed within 5-7 business days. Submit your request through the support portal with your order ID.',
-        category: 'REFUND_REQUEST',
-      },
-      {
-        title: 'Account login issues',
-        content: 'If you cannot log in, try resetting your password. If the issue persists, contact support with your account email.',
-        category: 'TECHNICAL_QUESTION',
-      },
-      {
-        title: 'General FAQ',
-        content: 'Find answers to the most common questions in our help center at help.novadesk.local.',
-        category: 'GENERAL_QUESTION',
-      },
-    ],
+    data: kbData,
     skipDuplicates: true,
   });
-  console.log('✅ Knowledge base seeded');
+  console.log('✅ Knowledge base seeded from knowledge-base.json');
 
   // 4. Delete existing tickets to ensure clean repopulation
   console.log('🧹 Clearing old tickets...');

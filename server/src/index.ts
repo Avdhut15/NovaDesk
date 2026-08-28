@@ -72,9 +72,12 @@ app.listen(env.PORT, async () => {
   console.log(`🔐 Auth available at http://localhost:${env.PORT}/api/auth`);
   
   // Start pg-boss queue
-  const { boss } = await import('./lib/queue');
+  const { boss, ensureQueues } = await import('./lib/queue');
   await boss.start();
   console.log('[pg-boss] Queue started');
+  
+  // Guarantee both queues exist in the DB before workers or producers use them
+  await ensureQueues(boss);
   
   // Register workers
   const { startWorkers } = await import('./workers');

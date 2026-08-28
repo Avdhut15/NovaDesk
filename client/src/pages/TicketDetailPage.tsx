@@ -10,7 +10,7 @@ import { ReplyForm } from '../components/ReplyForm';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type TicketStatus = 'OPEN' | 'RESOLVED' | 'CLOSED';
+type TicketStatus = 'NEW' | 'PROCESSING' | 'OPEN' | 'RESOLVED' | 'CLOSED';
 type TicketCategory = 'GENERAL_QUESTION' | 'TECHNICAL_QUESTION' | 'REFUND_REQUEST';
 
 interface TicketDetailData {

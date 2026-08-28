@@ -1,0 +1,128 @@
+import { Job } from 'pg-boss';
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
+import { google, AI_MODEL } from '../lib/ai';
+import { prisma } from '../lib/prisma';
+
+export interface AutoResolveJobData {
+  ticketId: string;
+  subject: string;
+  body: string;
+  fromName: string | null;
+}
+
+// ─── Structured output schema ─────────────────────────────────────────────────
+
+const AutoResolveOutputSchema = z.object({
+  canResolve: z.boolean(),
+  shouldEscalate: z.boolean(),
+  reply: z.string(),
+});
+
+// ─── Worker ───────────────────────────────────────────────────────────────────
+
+export async function autoResolveTicketWorker(jobs: Job<AutoResolveJobData>[]): Promise<void> {
+  for (const job of jobs) {
+    const { ticketId, subject, body, fromName } = job.data;
+
+    console.log(`[Worker] Auto-resolving ticket ${ticketId}`);
+
+    try {
+      // 1. Immediately mark ticket as PROCESSING
+      await prisma.ticket.update({
+        where: { id: ticketId },
+        data: { status: 'PROCESSING' },
+      });
+
+      // 2. Fetch all knowledge base articles
+      const kbArticles = await prisma.knowledgeBase.findMany({
+        select: { title: true, content: true },
+      });
+
+      if (kbArticles.length === 0) {
+        console.warn(`[Worker] No KB articles found — escalating ticket ${ticketId}`);
+        await prisma.ticket.update({ where: { id: ticketId }, data: { status: 'OPEN' } });
+        continue;
+      }
+
+      const kbContext = kbArticles
+        .map((a) => `## ${a.title}\n${a.content}`)
+        .join('\n\n---\n\n');
+
+      // Derive customer's first name for a friendly greeting
+      const firstName = fromName?.trim().split(' ')[0] ?? 'there';
+
+      // 3. Ask AI to decide if it can resolve the ticket
+      const { output } = await generateText({
+        model: google(AI_MODEL),
+        output: Output.object({ schema: AutoResolveOutputSchema }),
+        system: `You are a professional and friendly customer support agent for an online learning platform.
+Your job is to decide whether the following customer support ticket can be resolved using the provided Knowledge Base.
+
+KNOWLEDGE BASE:
+${kbContext}
+
+INSTRUCTIONS:
+- Read the ticket carefully.
+- If the Knowledge Base contains a clear, complete answer, set canResolve to true and write a helpful reply.
+- If the issue involves ANY of the following, set shouldEscalate to true and canResolve to false:
+    * Legal threats or mentions of legal action
+    * Chargebacks or payment disputes
+    * Refund requests outside of the 30-day policy window
+    * Account security or hacking concerns
+    * Any situation where you are not fully confident in the answer
+- Always address the customer by their first name: "${firstName}".
+- Sign off with: "Best regards,\\nNovaDesk Agent"
+- Keep the tone warm, professional, and concise.
+- The reply field must always contain a complete, ready-to-send response even if canResolve is false (in that case, acknowledge receipt and say a specialist will be in touch).`,
+        prompt: `Customer first name: ${firstName}
+Subject: ${subject}
+
+Message:
+${body}`,
+      });
+
+      if (!output) {
+        console.warn(`[Worker] AI returned no output for ticket ${ticketId} — escalating`);
+        await prisma.ticket.update({ where: { id: ticketId }, data: { status: 'OPEN' } });
+        continue;
+      }
+
+      const { canResolve, shouldEscalate, reply } = output;
+
+      if (canResolve && !shouldEscalate) {
+        // 4a. Auto-resolve: post reply and close the ticket
+        await prisma.ticketReply.create({
+          data: {
+            ticketId,
+            body: reply,
+            fromAgent: true,
+            // createdById intentionally omitted — system reply
+          },
+        });
+
+        await prisma.ticket.update({
+          where: { id: ticketId },
+          data: { status: 'RESOLVED' },
+        });
+
+        console.log(`[Worker] Auto-resolved ticket ${ticketId}`);
+      } else {
+        // 4b. Escalate: move to OPEN queue for a human agent
+        await prisma.ticket.update({
+          where: { id: ticketId },
+          data: { status: 'OPEN' },
+        });
+
+        console.log(`[Worker] Escalated ticket ${ticketId} to human queue (shouldEscalate=${shouldEscalate})`);
+      }
+    } catch (error) {
+      console.error(`[Worker] auto-resolve error for ticket ${ticketId}:`, error);
+      // Fail safe: move ticket back to OPEN so a human can handle it
+      await prisma.ticket.update({
+        where: { id: ticketId },
+        data: { status: 'OPEN' },
+      }).catch(() => {/* best-effort */});
+    }
+  }
+}

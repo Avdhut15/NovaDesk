@@ -21,7 +21,7 @@ export interface TicketRecord {
   _count: { replies: number };
 }
 
-export type TicketStatus = 'OPEN' | 'RESOLVED' | 'CLOSED';
+export type TicketStatus = 'NEW' | 'PROCESSING' | 'OPEN' | 'RESOLVED' | 'CLOSED';
 export type TicketCategory = 'GENERAL_QUESTION' | 'TECHNICAL_QUESTION' | 'REFUND_REQUEST';
 
 export interface PaginationMeta {
@@ -54,6 +54,8 @@ export function formatCategory(cat: TicketCategory | null): string {
 
 export function StatusBadge({ status }: { status: TicketStatus }) {
   const config = {
+    NEW: { label: 'new', cls: 'bg-slate-500 text-white' },
+    PROCESSING: { label: 'processing', cls: 'bg-amber-500 text-white animate-pulse' },
     OPEN: { label: 'open', cls: 'bg-blue-600 text-white' },
     RESOLVED: { label: 'resolved', cls: 'bg-green-600 text-white' },
     CLOSED: { label: 'closed', cls: 'bg-muted-foreground/50 text-white' },

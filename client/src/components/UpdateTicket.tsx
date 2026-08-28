@@ -1,6 +1,6 @@
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type TicketStatus = 'OPEN' | 'RESOLVED' | 'CLOSED';
+type TicketStatus = 'NEW' | 'PROCESSING' | 'OPEN' | 'RESOLVED' | 'CLOSED';
 type TicketCategory = 'GENERAL_QUESTION' | 'TECHNICAL_QUESTION' | 'REFUND_REQUEST';
 
 interface Agent {
@@ -85,6 +85,8 @@ export function UpdateTicket({
         onChange={(val) => onUpdate({ status: val })}
         disabled={isPending}
       >
+        <option value="NEW">New</option>
+        <option value="PROCESSING">Processing</option>
         <option value="OPEN">Open</option>
         <option value="RESOLVED">Resolved</option>
         <option value="CLOSED">Closed</option>

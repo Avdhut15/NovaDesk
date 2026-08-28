@@ -12,6 +12,8 @@ generator client {
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 enum TicketStatus {
+  NEW
+  PROCESSING
   OPEN
   RESOLVED
   CLOSED

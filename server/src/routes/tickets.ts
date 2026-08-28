@@ -129,7 +129,7 @@ ticketsRouter.post('/ingest', async (req, res) => {
       fromEmail,
       fromName,
       emailThreadId,
-      status: 'OPEN',
+      status: 'NEW',
       category: 'GENERAL_QUESTION', // Default — overwritten async by AI below
     },
     select: ticketDetailSelect,
@@ -138,9 +138,16 @@ ticketsRouter.post('/ingest', async (req, res) => {
   // Respond immediately — don't wait for AI
   res.status(201).json({ success: true, data: ticket });
 
-  // Classify in background via pg-boss
+  const enqueuePayload = { ticketId: ticket.id, subject, body, fromName: fromName ?? null };
+
+  // Classify category in background
   boss.send('classify-ticket', { ticketId: ticket.id, subject, body }).catch((err: unknown) => {
     console.error('[Queue] error enqueuing classify-ticket (ingest):', err instanceof Error ? err.message : err);
+  });
+
+  // Attempt auto-resolve in background
+  boss.send('auto-resolve-ticket', enqueuePayload).catch((err: unknown) => {
+    console.error('[Queue] error enqueuing auto-resolve-ticket (ingest):', err instanceof Error ? err.message : err);
   });
 });
 
@@ -192,7 +199,7 @@ ticketsRouter.post('/', requireAuth(), async (req, res) => {
       category,
       fromEmail,
       fromName,
-      status: 'OPEN',
+      status: 'NEW',
       ...(assignedAgentId ? { assignedAgentId } : {}),
       createdById: req.user!.id,
     },
@@ -204,8 +211,14 @@ ticketsRouter.post('/', requireAuth(), async (req, res) => {
 
   // Classify in background only when category wasn't explicitly set
   if (!parsed.data.category) {
+    const enqueuePayload = { ticketId: ticket.id, subject, body, fromName: fromName ?? null };
+
     boss.send('classify-ticket', { ticketId: ticket.id, subject, body }).catch((err: unknown) => {
       console.error('[Queue] error enqueuing classify-ticket (manual):', err instanceof Error ? err.message : err);
+    });
+
+    boss.send('auto-resolve-ticket', enqueuePayload).catch((err: unknown) => {
+      console.error('[Queue] error enqueuing auto-resolve-ticket (manual):', err instanceof Error ? err.message : err);
     });
   }
 });
