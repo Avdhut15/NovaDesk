@@ -7,6 +7,17 @@ import {
   IngestEmailSchema,
   ListTicketsQuerySchema,
 } from '../types/ticketSchemas';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { generateText } from 'ai';
+import { env } from '../config/env';
+import { z } from 'zod';
+
+const google = createGoogleGenerativeAI({ apiKey: env.GEMINI_API_KEY });
+const AI_MODEL = 'gemini-3.5-flash-lite';
+
+const PolishReplySchema = z.object({
+  body: z.string().min(1, 'Reply body is required'),
+});
 
 export const ticketsRouter = Router();
 
@@ -251,4 +262,55 @@ ticketsRouter.delete('/:id', requireAuth({ role: 'admin' }), async (req, res) =>
   await prisma.ticket.delete({ where: { id } });
 
   res.json({ success: true, message: 'Ticket deleted successfully' });
+});
+
+// ─── POST /api/tickets/:id/polish-reply ───────────────────────────────────────
+// Takes a draft reply from an agent, customizes it with customer/agent names,
+// and improves it using Gemini 3.5 Flash Lite.
+ticketsRouter.post('/:id/polish-reply', requireAuth(), async (req, res) => {
+  const id = req.params.id as string;
+  const parsed = PolishReplySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+    return;
+  }
+
+  const { body } = parsed.data;
+
+  try {
+    const ticket = await prisma.ticket.findUnique({
+      where: { id },
+      select: { fromName: true },
+    });
+
+    if (!ticket) {
+      res.status(404).json({ error: 'Ticket not found' });
+      return;
+    }
+
+    const customerFullName = ticket.fromName || 'Customer';
+    const customerFirstName = customerFullName.trim().split(/\s+/)[0];
+    const agentName = req.user?.name || 'Support Agent';
+
+    const { text } = await generateText({
+      model: google(AI_MODEL),
+      system: `You are a professional customer support agent. 
+Your job is to polish and improve draft replies written by support agents.
+
+Requirements:
+1. Address the customer by their first name: "${customerFirstName}" at the very beginning of the reply (e.g. "Hi ${customerFirstName},").
+2. Ensure the response is professionally signed off with the support agent's name: "${agentName}" at the end (e.g., "Best regards,\n${agentName}").
+3. Improve the tone, clarity, grammar, and professionalism of the reply.
+4. Keep the same meaning and intent — do NOT add new information or change the core message.
+5. Do NOT add any preamble like "Here is the polished version:" — return only the polished support reply text itself.
+6. Keep it concise, friendly, and warm.`,
+      prompt: `Please polish the following draft support reply:\n\n${body}`,
+    });
+
+    res.json({ success: true, data: { polished: text } });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[AI] polish-reply error:', message);
+    res.status(500).json({ error: `AI error: ${message}` });
+  }
 });

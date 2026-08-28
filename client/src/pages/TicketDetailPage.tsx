@@ -90,7 +90,6 @@ export function TicketDetailPage() {
   });
 
   const [replyBody, setReplyBody] = useState('');
-  const [replyFromAgent, setReplyFromAgent] = useState(true);
 
   const mutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => patchTicket(id!, payload),
@@ -101,7 +100,7 @@ export function TicketDetailPage() {
   });
 
   const replyMutation = useMutation({
-    mutationFn: () => postReply(id!, { body: replyBody, fromAgent: replyFromAgent }),
+    mutationFn: () => postReply(id!, { body: replyBody, fromAgent: true }),
     onSuccess: () => {
       setReplyBody('');
       queryClient.invalidateQueries({ queryKey: ['ticket', id] });
@@ -173,13 +172,12 @@ export function TicketDetailPage() {
             />
             <ReplyThread replies={ticket.replies} />
             <ReplyForm
+              ticketId={ticket.id}
               replyBody={replyBody}
-              replyFromAgent={replyFromAgent}
               isPending={replyMutation.isPending}
               isError={replyMutation.isError}
               error={replyMutation.error}
               onBodyChange={setReplyBody}
-              onFromAgentChange={setReplyFromAgent}
               onSubmit={() => replyMutation.mutate()}
             />
           </div>

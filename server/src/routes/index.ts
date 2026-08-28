@@ -12,6 +12,7 @@ apiRouter.use('/tickets', ticketsRouter);
 apiRouter.use('/tickets/:ticketId/replies', repliesRouter);
 apiRouter.use('/agents', agentsRouter);
 
+
 // ─── Health / root ────────────────────────────────────────────────────────────
 apiRouter.get('/', (_req, res) => {
   res.json({ message: 'NovaDesk API v1' });
