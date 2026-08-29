@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireAuth } from '../middleware/requireAuth';
 import { prisma } from '../lib/prisma';
 import { AddReplySchema } from '../types/ticketSchemas';
+import { boss } from '../lib/queue';
 
 export const repliesRouter = Router({ mergeParams: true });
 
@@ -77,4 +78,9 @@ repliesRouter.post('/', requireAuth(), async (req, res) => {
   }
 
   res.status(201).json({ success: true, data: reply });
+
+  // Send outbound email to the customer (best-effort, fire-and-forget)
+  boss.send('send-reply-email', { ticketId, replyId: reply.id }).catch((err: unknown) => {
+    console.error('[replies] Failed to enqueue send-reply-email:', err instanceof Error ? err.message : err);
+  });
 });

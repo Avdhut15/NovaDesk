@@ -7,6 +7,7 @@ import { prisma } from './lib/prisma';
 import { apiRouter } from './routes';
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
+import { logEmailStatus } from './lib/email';
 
 const app = express();
 
@@ -82,6 +83,9 @@ app.listen(env.PORT, async () => {
   // Register workers
   const { startWorkers } = await import('./workers');
   await startWorkers(boss);
+
+  // Log email subsystem status
+  logEmailStatus();
 });
 
 export default app;

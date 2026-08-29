@@ -14,5 +14,8 @@ boss.on('error', (error: Error) => {
 export async function ensureQueues(boss: PgBoss): Promise<void> {
   await boss.createQueue('classify-ticket');
   await boss.createQueue('auto-resolve-ticket');
+  // Email queues
+  await boss.createQueue('imap-poll');
+  await boss.createQueue('send-reply-email');
   console.log('[pg-boss] Queues ensured');
 }

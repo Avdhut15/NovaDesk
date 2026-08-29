@@ -3,6 +3,7 @@ import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { google, AI_MODEL } from '../lib/ai';
 import { prisma } from '../lib/prisma';
+import { boss } from '../lib/queue';
 
 export interface AutoResolveJobData {
   ticketId: string;
@@ -109,18 +110,24 @@ ${body}`,
 
       if (canResolve && !shouldEscalate) {
         // 4a. Auto-resolve: post reply and close the ticket
-        await prisma.ticketReply.create({
+        const createdReply = await prisma.ticketReply.create({
           data: {
             ticketId,
             body: reply,
             fromAgent: true,
             // createdById intentionally omitted — system reply
           },
+          select: { id: true },
         });
 
         await prisma.ticket.update({
           where: { id: ticketId },
           data: { status: 'RESOLVED' },
+        });
+
+        // Send the AI reply back to the customer via email (best-effort)
+        boss.send('send-reply-email', { ticketId, replyId: createdReply.id }).catch((err: unknown) => {
+          console.error('[auto-resolve] Failed to enqueue send-reply-email:', err instanceof Error ? err.message : err);
         });
 
         console.log(`[Worker] Auto-resolved ticket ${ticketId}`);
