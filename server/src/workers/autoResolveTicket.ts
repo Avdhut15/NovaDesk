@@ -72,9 +72,26 @@ INSTRUCTIONS:
     * Account security or hacking concerns
     * Any situation where you are not fully confident in the answer
 - Always address the customer by their first name: "${firstName}".
-- Sign off with: "Best regards,\\nNovaDesk Agent"
 - Keep the tone warm, professional, and concise.
-- The reply field must always contain a complete, ready-to-send response even if canResolve is false (in that case, acknowledge receipt and say a specialist will be in touch).`,
+- The reply field must always contain a complete, ready-to-send response even if canResolve is false (in that case, acknowledge receipt and say a specialist will be in touch).
+
+REPLY FORMAT — you MUST follow this structure exactly, with a blank line between each section:
+Hi [First Name],
+
+[One or more body paragraphs, each separated by a blank line.]
+
+Best regards,
+NovaDesk Agent
+
+EXAMPLE of a correctly formatted reply:
+Hi Alex,
+
+Thank you for reaching out! Here is the information you need.
+
+Please let us know if you have any other questions.
+
+Best regards,
+NovaDesk Agent`,
         prompt: `Customer first name: ${firstName}
 Subject: ${subject}
 
@@ -108,20 +125,20 @@ ${body}`,
 
         console.log(`[Worker] Auto-resolved ticket ${ticketId}`);
       } else {
-        // 4b. Escalate: move to OPEN queue for a human agent
+        // 4b. Escalate: move to OPEN queue for a human agent, remove AI assignment
         await prisma.ticket.update({
           where: { id: ticketId },
-          data: { status: 'OPEN' },
+          data: { status: 'OPEN', assignedAgentId: null },
         });
 
         console.log(`[Worker] Escalated ticket ${ticketId} to human queue (shouldEscalate=${shouldEscalate})`);
       }
     } catch (error) {
       console.error(`[Worker] auto-resolve error for ticket ${ticketId}:`, error);
-      // Fail safe: move ticket back to OPEN so a human can handle it
+      // Fail safe: move ticket back to OPEN and unassign AI so a human can handle it
       await prisma.ticket.update({
         where: { id: ticketId },
-        data: { status: 'OPEN' },
+        data: { status: 'OPEN', assignedAgentId: null },
       }).catch(() => {/* best-effort */});
     }
   }

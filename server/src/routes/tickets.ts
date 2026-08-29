@@ -11,6 +11,20 @@ import { boss } from '../lib/queue';
 
 export const ticketsRouter = Router();
 
+// ─── AI Agent ID cache ────────────────────────────────────────────────────────
+// Lazily resolved once per process; avoids a DB call on every ticket creation.
+let _aiAgentId: string | null | undefined = undefined;
+
+async function getAiAgentId(): Promise<string | null> {
+  if (_aiAgentId !== undefined) return _aiAgentId;
+  const ai = await prisma.user.findUnique({
+    where: { email: 'ai@novadesk.internal' },
+    select: { id: true },
+  });
+  _aiAgentId = ai?.id ?? null;
+  return _aiAgentId;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Standard ticket select — excludes heavy AI fields from list views */
@@ -140,6 +154,18 @@ ticketsRouter.post('/ingest', async (req, res) => {
 
   const enqueuePayload = { ticketId: ticket.id, subject, body, fromName: fromName ?? null };
 
+  // Assign AI agent in background (best-effort)
+  getAiAgentId().then((aiId) => {
+    if (aiId) {
+      return prisma.ticket.update({
+        where: { id: ticket.id },
+        data: { assignedAgentId: aiId },
+      });
+    }
+  }).catch((err: unknown) => {
+    console.error('[Tickets] failed to assign AI agent (ingest):', err instanceof Error ? err.message : err);
+  });
+
   // Classify category in background
   boss.send('classify-ticket', { ticketId: ticket.id, subject, body }).catch((err: unknown) => {
     console.error('[Queue] error enqueuing classify-ticket (ingest):', err instanceof Error ? err.message : err);
@@ -212,6 +238,18 @@ ticketsRouter.post('/', requireAuth(), async (req, res) => {
   // Classify in background only when category wasn't explicitly set
   if (!parsed.data.category) {
     const enqueuePayload = { ticketId: ticket.id, subject, body, fromName: fromName ?? null };
+
+    // Assign AI agent in background (best-effort)
+    getAiAgentId().then((aiId) => {
+      if (aiId) {
+        return prisma.ticket.update({
+          where: { id: ticket.id },
+          data: { assignedAgentId: aiId },
+        });
+      }
+    }).catch((err: unknown) => {
+      console.error('[Tickets] failed to assign AI agent (manual):', err instanceof Error ? err.message : err);
+    });
 
     boss.send('classify-ticket', { ticketId: ticket.id, subject, body }).catch((err: unknown) => {
       console.error('[Queue] error enqueuing classify-ticket (manual):', err instanceof Error ? err.message : err);

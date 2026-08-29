@@ -4,6 +4,7 @@ import { ticketsRouter } from './tickets';
 import { repliesRouter } from './replies';
 import { agentsRouter } from './agents';
 import { aiTicketsRouter } from './aiTickets';
+import { dashboardRouter } from './dashboard';
 
 export const apiRouter = Router();
 
@@ -13,6 +14,7 @@ apiRouter.use('/tickets', ticketsRouter);
 apiRouter.use('/tickets/:ticketId/replies', repliesRouter);
 apiRouter.use('/tickets/:id', aiTicketsRouter);
 apiRouter.use('/agents', agentsRouter);
+apiRouter.use('/dashboard', dashboardRouter);
 
 
 // ─── Health / root ────────────────────────────────────────────────────────────

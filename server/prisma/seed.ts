@@ -54,6 +54,34 @@ async function createUser(email: string, name: string, role: string, password: s
   return user;
 }
 
+/**
+ * Upsert the virtual AI agent — no password, never logs in.
+ * This account is used to track tickets auto-resolved by the AI worker.
+ */
+async function ensureAiAgent() {
+  const AI_EMAIL = 'ai@novadesk.internal';
+  const existing = await prisma.user.findUnique({ where: { email: AI_EMAIL } });
+  if (existing) {
+    console.log(`⚠️  AI agent already exists — skipping.`);
+    return existing;
+  }
+
+  const aiAgent = await prisma.user.create({
+    data: {
+      id: crypto.randomUUID(),
+      email: AI_EMAIL,
+      name: 'AI',
+      emailVerified: true,
+      role: Role.AGENT,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+
+  console.log(`🤖 AI agent created: ${aiAgent.email}`);
+  return aiAgent;
+}
+
 const customers = [
   { name: 'Alice Smith', email: 'alice.smith@example.com' },
   { name: 'Bob Johnson', email: 'bob.johnson@example.com' },
@@ -128,6 +156,9 @@ async function main() {
   
   // 2. Create Agent
   const agent = await createUser(SEED_AGENT_EMAIL, 'Agent 1', Role.AGENT, SEED_AGENT_PASSWORD);
+
+  // 2b. Ensure virtual AI agent exists
+  await ensureAiAgent();
 
   // 3. Seed Knowledge Base
   // Clear old KB articles first
