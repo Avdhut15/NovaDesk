@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './index.css';
 import { App } from './App';
+import { ThemeProvider } from './components/ThemeProvider';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,7 +20,9 @@ if (!rootEl) throw new Error('Root element not found');
 createRoot(rootEl).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <ThemeProvider defaultTheme="system" storageKey="novadesk-ui-theme">
+        <App />
+      </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>
 );

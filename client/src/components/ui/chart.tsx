@@ -92,7 +92,13 @@ export function TicketsBarChart({ data, loading }: TicketsBarChartProps) {
                 content={<ChartTooltip />}
                 cursor={{ fill: 'var(--color-muted)', opacity: 0.4 }}
               />
-              <Bar dataKey="count" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+              <defs>
+                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={1} />
+                  <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0.3} />
+                </linearGradient>
+              </defs>
+              <Bar dataKey="count" fill="url(#barGradient)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}

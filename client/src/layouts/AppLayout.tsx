@@ -2,6 +2,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { authClient } from '../lib/authClient';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const baseNavItems = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -65,8 +66,10 @@ export function AppLayout() {
 
             {/* User area */}
             <div className="flex items-center gap-2">
+              <ThemeToggle />
+              
               {/* Avatar + name */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 ml-2">
                 <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center select-none">
                   {initials}
                 </div>

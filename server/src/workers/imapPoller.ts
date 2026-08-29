@@ -4,6 +4,7 @@ import { env } from '../config/env';
 import { isEmailEnabled } from '../lib/email';
 import { prisma } from '../lib/prisma';
 import { boss } from '../lib/queue';
+import EmailReplyParser from 'email-reply-parser';
 
 // ─── IMAP Poller Worker ────────────────────────────────────────────────────────
 // Runs on a pg-boss cron schedule (every EMAIL_POLL_INTERVAL seconds).
@@ -78,7 +79,9 @@ async function processMessage(message: imaps.Message): Promise<void> {
     const fromEmail = fromHeader?.address;
     const fromName = fromHeader?.name ?? null;
     const subject = parsed.subject ?? '(No Subject)';
-    const body = (parsed.text || parsed.html || '').toString();
+    let body = (parsed.text || parsed.html || '').toString();
+    const parser = new EmailReplyParser();
+    body = parser.read(body).getVisibleText();
     const messageId = parsed.messageId ?? undefined;
 
     if (!fromEmail) {
