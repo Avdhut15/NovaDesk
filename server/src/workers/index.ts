@@ -6,12 +6,18 @@ import { sendReplyEmailWorker } from './sendReplyEmail';
 import { env } from '../config/env';
 import { isEmailEnabled } from '../lib/email';
 
+import { closeResolvedTicketsWorker } from './closeResolvedTickets';
+
 export async function startWorkers(boss: PgBoss) {
   // Register the classify-ticket worker
   await boss.work('classify-ticket', classifyTicketWorker);
 
   // Register the auto-resolve-ticket worker
   await boss.work('auto-resolve-ticket', autoResolveTicketWorker);
+
+  // Register cron worker for closing old resolved tickets (runs hourly)
+  await boss.schedule('close-resolved-tickets', '0 * * * *', {});
+  await boss.work('close-resolved-tickets', closeResolvedTicketsWorker);
 
   // ── Email workers ─────────────────────────────────────────────────────────────
   if (isEmailEnabled()) {

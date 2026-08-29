@@ -66,6 +66,7 @@ ${kbContext}
 INSTRUCTIONS:
 - Read the ticket carefully.
 - If the Knowledge Base contains a clear, complete answer, set canResolve to true and write a helpful reply.
+- **IMPORTANT**: If the ticket is a technical, programming, or coding question (e.g., how to use React, Node, Express), you are highly encouraged to use your own vast general knowledge as an AI to answer it fully! Set canResolve to true and provide a detailed, helpful technical answer. You do NOT need to restrict yourself to the KB for general programming questions.
 - If the issue involves ANY of the following, set shouldEscalate to true and canResolve to false:
     * Legal threats or mentions of legal action
     * Chargebacks or payment disputes
@@ -120,9 +121,10 @@ ${body}`,
           select: { id: true },
         });
 
+        const aiAgent = await prisma.user.findUnique({ where: { email: 'ai@novadesk.internal' } });
         await prisma.ticket.update({
           where: { id: ticketId },
-          data: { status: 'RESOLVED' },
+          data: { status: 'RESOLVED', assignedAgentId: aiAgent?.id || null },
         });
 
         // Send the AI reply back to the customer via email (best-effort)

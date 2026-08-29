@@ -44,6 +44,8 @@ export interface SendReplyEmailOptions {
   body: string;
 }
 
+import { marked } from 'marked';
+
 export async function sendReplyEmail(opts: SendReplyEmailOptions): Promise<void> {
   if (!isEmailEnabled()) {
     console.warn('[email] subsystem disabled — skipping sendReplyEmail');
@@ -55,11 +57,14 @@ export async function sendReplyEmail(opts: SendReplyEmailOptions): Promise<void>
   const toAddress = toName ? `"${toName}" <${to}>` : to;
 
   try {
+    const htmlBody = await marked.parse(body);
+
     const info = await getTransporter().sendMail({
       from: `"NovaDesk Support" <${env.EMAIL_USER}>`,
       to: toAddress,
       subject: replySubject,
       text: body,
+      html: htmlBody,
     });
 
     console.log(`[email] Reply sent to ${to} — messageId: ${info.messageId}`);

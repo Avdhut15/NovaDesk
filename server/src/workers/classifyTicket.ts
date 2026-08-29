@@ -22,8 +22,8 @@ export async function classifyTicketWorker(jobs: Job<ClassifyTicketJobData>[]): 
         model: google(AI_MODEL),
         system: `You are a customer support ticket classifier.
 Classify the given support ticket into EXACTLY one of these categories:
-- GENERAL_QUESTION: General inquiries, feature questions, how-to, account questions.
-- TECHNICAL_QUESTION: Bugs, crashes, errors, integrations, login/access issues.
+- GENERAL_QUESTION: General inquiries, feature questions, account questions, non-technical how-to.
+- TECHNICAL_QUESTION: Bugs, crashes, errors, integrations, login/access issues, programming, coding, software development questions, technical how-to.
 - REFUND_REQUEST: Refund requests, billing disputes, cancellations, charge issues.
 
 Respond with ONLY the category name, nothing else. No explanation, no punctuation.`,

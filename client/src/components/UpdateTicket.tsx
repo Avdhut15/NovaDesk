@@ -85,8 +85,6 @@ export function UpdateTicket({
         onChange={(val) => onUpdate({ status: val })}
         disabled={isPending}
       >
-        <option value="NEW">New</option>
-        <option value="PROCESSING">Processing</option>
         <option value="OPEN">Open</option>
         <option value="RESOLVED">Resolved</option>
         <option value="CLOSED">Closed</option>

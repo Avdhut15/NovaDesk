@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   flexRender,
   type Table as TanstackTable,
@@ -110,66 +110,68 @@ interface TicketsTableProps {
   onPageChange: (page: number) => void;
 }
 
-export function TicketsTable({
-  table,
-  isLoading,
-  errorMessage,
-  search,
-  page,
-  pagination,
-  onPageChange,
-}: TicketsTableProps) {
-  const colCount = table.getAllColumns().length;
+  export function TicketsTable({
+    table,
+    isLoading,
+    errorMessage,
+    search,
+    page,
+    pagination,
+    onPageChange,
+  }: TicketsTableProps) {
+    const colCount = table.getAllColumns().length;
+    const navigate = useNavigate();
 
-  return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="border-b border-border">
-                {headerGroup.headers.map((header) => {
-                  const canSort = header.column.getCanSort();
-                  const sorted = header.column.getIsSorted();
-                  return (
-                    <th
-                      key={header.id}
-                      className="px-4 py-3 text-left text-sm font-medium text-foreground select-none"
-                    >
-                      {canSort ? (
-                        <button
-                          className="group inline-flex items-center hover:text-foreground transition-colors"
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          <SortIcon direction={sorted} />
-                        </button>
-                      ) : (
-                        <span className="inline-flex items-center">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          <SortIcon direction={false} />
-                        </span>
-                      )}
-                    </th>
-                  );
-                })}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {/* Loading skeletons */}
-            {isLoading &&
-              Array.from({ length: 8 }).map((_, i) => (
-                <SkeletonRow key={i} cols={colCount} />
+    return (
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id} className="border-b border-border">
+                  {headerGroup.headers.map((header) => {
+                    const canSort = header.column.getCanSort();
+                    const sorted = header.column.getIsSorted();
+                    return (
+                      <th
+                        key={header.id}
+                        className="px-4 py-3 text-left text-sm font-medium text-foreground select-none"
+                      >
+                        {canSort ? (
+                          <button
+                            className="group inline-flex items-center hover:text-foreground transition-colors"
+                            onClick={header.column.getToggleSortingHandler()}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            <SortIcon direction={sorted} />
+                          </button>
+                        ) : (
+                          <span className="inline-flex items-center">
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            <SortIcon direction={false} />
+                          </span>
+                        )}
+                      </th>
+                    );
+                  })}
+                </tr>
               ))}
+            </thead>
+            <tbody>
+              {/* Loading skeletons */}
+              {isLoading &&
+                Array.from({ length: 8 }).map((_, i) => (
+                  <SkeletonRow key={i} cols={colCount} />
+                ))}
 
-            {/* Data rows */}
-            {!isLoading &&
-              table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
-                >
+              {/* Data rows */}
+              {!isLoading &&
+                table.getRowModel().rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    onClick={() => navigate(`/tickets/${row.original.id}`)}
+                    className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
+                  >
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-4 py-3.5 max-w-[260px]">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
