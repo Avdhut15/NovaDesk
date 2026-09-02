@@ -5,7 +5,8 @@ import { z } from 'zod';
 export const TicketStatusEnum = z.enum(['NEW', 'PROCESSING', 'OPEN', 'RESOLVED', 'CLOSED']);
 export const TicketCategoryEnum = z.enum([
   'GENERAL_QUESTION',
-  'TECHNICAL_QUESTION',
+  'SHIPPING_ISSUE',
+  'PRODUCT_ISSUE',
   'REFUND_REQUEST',
 ]);
 

@@ -21,7 +21,8 @@ enum TicketStatus {
 
 enum TicketCategory {
   GENERAL_QUESTION
-  TECHNICAL_QUESTION
+  SHIPPING_ISSUE
+  PRODUCT_ISSUE
   REFUND_REQUEST
 }
 

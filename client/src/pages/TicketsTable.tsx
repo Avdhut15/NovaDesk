@@ -22,7 +22,7 @@ export interface TicketRecord {
 }
 
 export type TicketStatus = 'NEW' | 'PROCESSING' | 'OPEN' | 'RESOLVED' | 'CLOSED';
-export type TicketCategory = 'GENERAL_QUESTION' | 'TECHNICAL_QUESTION' | 'REFUND_REQUEST';
+export type TicketCategory = 'GENERAL_QUESTION' | 'SHIPPING_ISSUE' | 'PRODUCT_ISSUE' | 'REFUND_REQUEST';
 
 export interface PaginationMeta {
   page: number;
@@ -45,7 +45,8 @@ export function formatCategory(cat: TicketCategory | null): string {
   if (!cat) return '—';
   return {
     GENERAL_QUESTION: 'general question',
-    TECHNICAL_QUESTION: 'technical question',
+    SHIPPING_ISSUE: 'shipping issue',
+    PRODUCT_ISSUE: 'product issue',
     REFUND_REQUEST: 'refund request',
   }[cat];
 }

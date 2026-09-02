@@ -57,7 +57,7 @@ export async function autoResolveTicketWorker(jobs: Job<AutoResolveJobData>[]): 
       const { output } = await generateText({
         model: google(AI_MODEL),
         output: Output.object({ schema: AutoResolveOutputSchema }),
-        system: `You are a professional and friendly customer support agent for an online learning platform.
+        system: `You are a professional and friendly customer support agent for an e-commerce retail platform.
 Your job is to decide whether the following customer support ticket can be resolved using the provided Knowledge Base.
 
 KNOWLEDGE BASE:
@@ -66,12 +66,11 @@ ${kbContext}
 INSTRUCTIONS:
 - Read the ticket carefully.
 - If the Knowledge Base contains a clear, complete answer, set canResolve to true and write a helpful reply.
-- **IMPORTANT**: If the ticket is a technical, programming, or coding question (e.g., how to use React, Node, Express), you are highly encouraged to use your own vast general knowledge as an AI to answer it fully! Set canResolve to true and provide a detailed, helpful technical answer. You do NOT need to restrict yourself to the KB for general programming questions.
 - If the issue involves ANY of the following, set shouldEscalate to true and canResolve to false:
+    * Lost packages or suspected fraud
+    * Defective high-value items
     * Legal threats or mentions of legal action
     * Chargebacks or payment disputes
-    * Refund requests outside of the 30-day policy window
-    * Account security or hacking concerns
     * Any situation where you are not fully confident in the answer
 - Always address the customer by their first name: "${firstName}".
 - Keep the tone warm, professional, and concise.

@@ -136,16 +136,16 @@ const customers = [
 ];
 
 const ticketTemplates = [
-  { s: "Cannot log into my account", b: "I've been trying to log in for the past hour but it keeps saying invalid credentials even though I just reset my password. Please help.", c: TicketCategory.TECHNICAL_QUESTION },
-  { s: "Billing charged twice", b: "I checked my credit card statement and I was charged twice for the pro subscription this month. I would like a refund for the extra charge.", c: TicketCategory.REFUND_REQUEST },
-  { s: "How do I export my data?", b: "Is there a way to export all my reports to a CSV file? I couldn't find the option in the dashboard.", c: TicketCategory.GENERAL_QUESTION },
-  { s: "App crashes on iOS 17", b: "Ever since I updated my phone, your app crashes immediately after the splash screen.", c: TicketCategory.TECHNICAL_QUESTION },
-  { s: "Need help setting up integration", b: "I'm trying to connect my Slack workspace but the OAuth flow just spins endlessly.", c: TicketCategory.TECHNICAL_QUESTION },
-  { s: "Cancel my subscription", b: "I am not using the service enough to justify the cost. Please cancel my account and issue a prorated refund if possible.", c: TicketCategory.REFUND_REQUEST },
-  { s: "What are your business hours?", b: "Do you offer phone support on weekends?", c: TicketCategory.GENERAL_QUESTION },
-  { s: "Incorrect tax on invoice", b: "My latest invoice includes VAT but my company is VAT-exempt. Can you fix this?", c: TicketCategory.GENERAL_QUESTION },
-  { s: "Forgot my username", b: "I can't remember the email address I used to sign up. I have my order number though.", c: TicketCategory.GENERAL_QUESTION },
-  { s: "Feature request: Dark Mode", b: "It would be great if you could add a dark mode to the web app.", c: TicketCategory.GENERAL_QUESTION }
+  { s: "Where is my package?", b: "Tracking says delivered but I haven't received anything.", c: TicketCategory.SHIPPING_ISSUE },
+  { s: "Item arrived broken", b: "The ceramic mug was completely shattered in the box. Can I get a replacement?", c: TicketCategory.PRODUCT_ISSUE },
+  { s: "How do I return this sweater?", b: "It didn't fit. Where do I get a return label?", c: TicketCategory.REFUND_REQUEST },
+  { s: "Missing items from order", b: "I ordered 3 shirts but only 2 were in the package.", c: TicketCategory.SHIPPING_ISSUE },
+  { s: "Wrong color sent", b: "I ordered the blue one, but I received the red one.", c: TicketCategory.PRODUCT_ISSUE },
+  { s: "Cancel my order", b: "I just placed this order 10 minutes ago but I changed my mind.", c: TicketCategory.REFUND_REQUEST },
+  { s: "Do you ship internationally?", b: "I live in France, can I order from your store?", c: TicketCategory.GENERAL_QUESTION },
+  { s: "Discount code didn't work", b: "I tried using the SUMMER20 code but it didn't apply to my cart.", c: TicketCategory.GENERAL_QUESTION },
+  { s: "Can I change shipping address?", b: "I accidentally put my old apartment number.", c: TicketCategory.SHIPPING_ISSUE },
+  { s: "Are your products vegan?", b: "I'm looking for vegan leather options.", c: TicketCategory.GENERAL_QUESTION }
 ];
 
 async function main() {

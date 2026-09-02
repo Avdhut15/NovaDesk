@@ -1,7 +1,7 @@
 import { Job } from 'pg-boss';
 import { prisma } from '../lib/prisma';
 
-export async function closeResolvedTicketsWorker(jobs: Job[]): Promise<void> {
+export async function closeResolvedTicketsWorker(_jobs: Job[]): Promise<void> {
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   try {

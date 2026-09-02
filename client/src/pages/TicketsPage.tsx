@@ -69,7 +69,7 @@ export function TicketsPage() {
         sortBy,
         sortOrder,
       }),
-    refetchInterval: 10_000,
+    refetchInterval: 3_000,
   });
 
   const tickets = ticketsQuery.data?.tickets ?? [];

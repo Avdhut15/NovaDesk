@@ -95,7 +95,8 @@ export function TicketsFilters({
         >
           <option value="ALL">All categories</option>
           <option value="GENERAL_QUESTION">General question</option>
-          <option value="TECHNICAL_QUESTION">Technical question</option>
+          <option value="SHIPPING_ISSUE">Shipping issue</option>
+          <option value="PRODUCT_ISSUE">Product issue</option>
           <option value="REFUND_REQUEST">Refund request</option>
         </select>
         <ChevronDown />

@@ -10,7 +10,7 @@ export interface ClassifyTicketJobData {
 }
 
 export async function classifyTicketWorker(jobs: Job<ClassifyTicketJobData>[]): Promise<void> {
-  const categories = ['GENERAL_QUESTION', 'TECHNICAL_QUESTION', 'REFUND_REQUEST'] as const;
+  const categories = ['GENERAL_QUESTION', 'SHIPPING_ISSUE', 'PRODUCT_ISSUE', 'REFUND_REQUEST'] as const;
 
   for (const job of jobs) {
     const { ticketId, subject, body } = job.data;
@@ -20,11 +20,12 @@ export async function classifyTicketWorker(jobs: Job<ClassifyTicketJobData>[]): 
     try {
       const { text } = await generateText({
         model: google(AI_MODEL),
-        system: `You are a customer support ticket classifier.
+        system: `You are a customer support ticket classifier for an e-commerce store.
 Classify the given support ticket into EXACTLY one of these categories:
-- GENERAL_QUESTION: General inquiries, feature questions, account questions, non-technical how-to.
-- TECHNICAL_QUESTION: Bugs, crashes, errors, integrations, login/access issues, programming, coding, software development questions, technical how-to.
-- REFUND_REQUEST: Refund requests, billing disputes, cancellations, charge issues.
+- GENERAL_QUESTION: General inquiries, account questions, business hours, non-technical how-to.
+- SHIPPING_ISSUE: Missing packages, order tracking, wrong address, delayed shipping.
+- PRODUCT_ISSUE: Damaged items, defective products, wrong items sent, product-specific questions.
+- REFUND_REQUEST: Refund requests, returns, billing disputes, cancellations, charge issues.
 
 Respond with ONLY the category name, nothing else. No explanation, no punctuation.`,
         prompt: `Subject: ${subject}\n\n${body}`,

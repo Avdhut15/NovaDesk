@@ -1,52 +1,102 @@
 [
   {
-    "title": "Account & Login Issues",
-    "content": "If you forgot your password: 1. Go to the login page. 2. Click Forgot Password. 3. Enter your registered email address. 4. Follow the instructions in the reset email. If you do not receive the email within 10 minutes, check your spam/promotions folder. If it still has not arrived, it may be due to an incorrect email entry or the account being created with a different email. Contact support if the issue persists.",
-    "category": "TECHNICAL_QUESTION"
+    "title": "Shipping & Delivery Times",
+    "content": "We offer Standard, Expedited, and Overnight shipping. Standard shipping takes 5-7 business days. Expedited shipping takes 2-3 business days. Overnight shipping guarantees delivery by the next business day if the order is placed before 1 PM EST. Note that weekends and holidays are not considered business days.",
+    "category": "SHIPPING_ISSUE"
   },
   {
-    "title": "Course Access & Purchases",
-    "content": "If you purchased a course but cannot see it, check your receipt email for confirmation. Possible reasons include: you are logged in with a different email address, the payment is still processing, or the purchase was not completed successfully. Courses are non-transferable and are permanently tied to the purchasing account.",
-    "category": "GENERAL_QUESTION"
+    "title": "International Shipping & Customs",
+    "content": "We ship to over 50 countries worldwide. International orders typically take 10-21 business days to arrive. Please be aware that your country's customs office may charge additional import duties, taxes, and fees. These fees are the responsibility of the customer and are not included in the shipping costs at checkout.",
+    "category": "SHIPPING_ISSUE"
   },
   {
-    "title": "Lifetime Access",
-    "content": "Lifetime Access means you pay once and keep access permanently. You will also receive future updates for that specific course. Note that Lifetime Access applies only to the purchased course.",
-    "category": "GENERAL_QUESTION"
+    "title": "Order Tracking",
+    "content": "Once your order ships, you will receive a shipping confirmation email containing a tracking number. You can use this tracking number on our carrier's website to monitor your delivery. You can also view real-time tracking updates directly in your account dashboard under 'Order History'.",
+    "category": "SHIPPING_ISSUE"
   },
   {
-    "title": "Refund Policy & Requests",
-    "content": "We offer a 30-day money-back guarantee. A full refund is available if requested within 30 days of purchase. A partial refund may be available if less than 80% of the course has been completed. No refund is granted if 80% or more of the course has been completed. Refunds are processed within 5-10 business days. To request a refund, contact support within 30 days of purchase, provide your order receipt, and include the reason for your request.",
+    "title": "Missing or Stolen Packages",
+    "content": "If your tracking information says 'Delivered' but you cannot find your package, please check around your property and with your neighbors first. Wait at least 24 hours, as carriers sometimes scan packages early. If it is still missing after 24 hours, contact support immediately so we can file a claim and send a replacement.",
+    "category": "SHIPPING_ISSUE"
+  },
+  {
+    "title": "Return & Refund Policy",
+    "content": "We offer a 30-day money-back guarantee. You may return any unworn, unwashed, or defective merchandise within 30 days of the delivery date for a full refund. Original shipping fees are non-refundable. Refunds are processed back to the original payment method within 5-10 business days after we receive your return.",
     "category": "REFUND_REQUEST"
   },
   {
-    "title": "Certificates of Completion",
-    "content": "Yes, we provide certificates! A certificate is issued upon course completion and is available inside your dashboard. Please note that these certificates are not accredited degrees.",
+    "title": "How to Initiate a Return",
+    "content": "To start a return, log into your account, go to 'Order History', and select 'Request Return' next to the eligible item. A prepaid return shipping label will be generated for you. Print the label, attach it to the original packaging, and drop it off at any authorized carrier location.",
+    "category": "REFUND_REQUEST"
+  },
+  {
+    "title": "Exchanges",
+    "content": "We offer free exchanges for different sizes or colors within 30 days of delivery. To request an exchange, select the 'Exchange' option in your return portal. The new item will be shipped as soon as the carrier scans your return package.",
+    "category": "REFUND_REQUEST"
+  },
+  {
+    "title": "Damaged or Defective Items",
+    "content": "Quality is our top priority. If you receive a damaged or defective item, please contact our support team immediately with a clear photograph of the defect. We will expedite a free replacement to you or issue a full refund without requiring you to return the damaged item.",
+    "category": "PRODUCT_ISSUE"
+  },
+  {
+    "title": "Received the Wrong Item",
+    "content": "If you received an incorrect item in your order, please let us know right away. We will immediately ship the correct item along with a prepaid return envelope so you can easily send back the incorrect product at no cost to you.",
+    "category": "PRODUCT_ISSUE"
+  },
+  {
+    "title": "Missing Items from Order",
+    "content": "For large orders, items may be split into multiple shipments. Please check your shipping confirmation email to see if multiple tracking numbers were provided. If all packages have arrived and an item is still missing, please contact support so we can send a replacement immediately.",
+    "category": "SHIPPING_ISSUE"
+  },
+  {
+    "title": "Payment Methods Accepted",
+    "content": "We accept Visa, MasterCard, American Express, and Discover. We also accept digital wallets including PayPal, Apple Pay, and Google Pay. All transactions are securely processed and encrypted.",
     "category": "GENERAL_QUESTION"
   },
   {
-    "title": "Downloading Content & Offline Viewing",
-    "content": "Videos are streamed online and offline video downloads are not supported. However, any associated source code or resource files are fully downloadable.",
+    "title": "Discount Codes and Promotions",
+    "content": "Promo codes can be entered at checkout in the 'Discount Code' field. Only one promo code can be used per order. Codes cannot be applied to previous purchases, gift cards, or combined with other site-wide sales unless explicitly stated.",
     "category": "GENERAL_QUESTION"
   },
   {
-    "title": "Technical Issues: Video Playback",
-    "content": "If videos are not playing, try the following: clear your browser cache, use the latest version of Chrome or Edge, disable browser extensions, and check your internet connection. If the video quality is low, please note that quality adjusts automatically based on your internet speed. Ensure you have a stable connection.",
-    "category": "TECHNICAL_QUESTION"
-  },
-  {
-    "title": "Coupon Codes & Discounts",
-    "content": "If your coupon code doesn't work, it may be because: the coupon has expired, it was already used, or it is not valid for the selected course. Only one coupon may be applied per purchase.",
+    "title": "Gift Cards",
+    "content": "Digital gift cards are delivered immediately via email and contain instructions to redeem them at checkout. Our gift cards have no additional processing fees and never expire. They are non-refundable and cannot be redeemed for cash.",
     "category": "GENERAL_QUESTION"
   },
   {
-    "title": "Account Changes: Email Updates",
-    "content": "To change your email address, you must contact support directly. Please provide your current email, your new email, and proof of purchase (if requested).",
+    "title": "Order Cancellations & Modifications",
+    "content": "Our fulfillment center processes orders very quickly. You have a 30-minute window after placing your order to cancel or modify it (such as changing a size or updating the shipping address). After 30 minutes, the order is locked and cannot be changed.",
+    "category": "REFUND_REQUEST"
+  },
+  {
+    "title": "Sizing Guide",
+    "content": "Each product page contains a detailed 'Size Guide' with exact measurements. We recommend comparing these measurements to a similar item you already own. If you are between sizes, we recommend sizing up for a relaxed fit or sizing down for a tailored fit.",
+    "category": "PRODUCT_ISSUE"
+  },
+  {
+    "title": "Product Care Instructions",
+    "content": "To maximize the lifespan of your apparel, we recommend washing in cold water with like colors and hanging to dry. Do not bleach. For specific materials like leather or wool, please refer to the care tag located on the inside seam of the garment.",
+    "category": "PRODUCT_ISSUE"
+  },
+  {
+    "title": "Wholesale and Bulk Orders",
+    "content": "We offer bulk pricing for orders of 50 units or more. If you are a retailer interested in carrying our products, please contact our B2B sales team through the 'Wholesale' link in our website footer for a custom quote and catalog access.",
     "category": "GENERAL_QUESTION"
   },
   {
-    "title": "Internal Policy: Escalation Rules",
-    "content": "INTERNAL POLICY: The system must escalate to a human agent if: the user threatens legal action, the user requests a refund outside the 30-day window, the user disputes a charge or mentions a chargeback, the issue involves account security concerns, or the system confidence score is low. Do not auto-resolve these tickets.",
+    "title": "Pre-orders",
+    "content": "Items available for pre-order will display an estimated shipping date on the product page. When you place a pre-order, you are charged immediately to reserve the inventory. If your order contains both in-stock and pre-order items, they will ship together once the pre-order is available.",
+    "category": "SHIPPING_ISSUE"
+  },
+  {
+    "title": "Account Passwords",
+    "content": "If you forgot your password, click the 'Forgot Password' link on the login page. An email with a reset link will be sent to you. For security reasons, our support agents cannot see or manually change your password.",
     "category": "GENERAL_QUESTION"
+  },
+  {
+    "title": "Warranty Policy",
+    "content": "All of our electronics and hardware come with a 1-year limited warranty protecting against manufacturing defects. The warranty does not cover accidental damage, water damage, or normal wear and tear. Proof of purchase is required for all warranty claims.",
+    "category": "PRODUCT_ISSUE"
   }
 ]
