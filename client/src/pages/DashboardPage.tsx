@@ -67,7 +67,7 @@ export function DashboardPage() {
     { label: 'Open Tickets',        value: data?.openTickets  ?? '—' },
     { label: 'Resolved by AI',      value: data?.resolvedByAI ?? '—' },
     { label: 'AI Resolution Rate',  value: data != null ? `${data.aiResolutionRate}%` : '—' },
-    { label: 'Avg Resolution Time', value: data?.avgResolutionTime ?? '—' },
+    { label: 'Avg AI Resolution Time', value: data?.avgResolutionTime ?? '—' },
   ];
 
   return (

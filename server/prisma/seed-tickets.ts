@@ -7,7 +7,7 @@ const adapter = new PrismaPg({
 });
 const prisma = new PrismaClient({ adapter });
 
-const categories = ['GENERAL_QUESTION', 'TECHNICAL_QUESTION', 'REFUND_REQUEST'] as const;
+const categories = ['GENERAL_QUESTION', 'SHIPPING_ISSUE', 'PRODUCT_ISSUE', 'REFUND_REQUEST'] as const;
 const statuses = ['OPEN', 'RESOLVED', 'CLOSED'] as const;
 
 const senders = [
@@ -25,7 +25,7 @@ const senders = [
 
 const ticketTemplates = [
   {
-    category: 'TECHNICAL_QUESTION' as const,
+    category: 'PRODUCT_ISSUE' as const,
     subjectTemplates: [
       'Cannot log into my account',
       'API returning 500 error on checkout',

@@ -20,7 +20,7 @@ if (!rootEl) throw new Error('Root element not found');
 createRoot(rootEl).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="system" storageKey="novadesk-ui-theme">
+      <ThemeProvider defaultTheme="light" storageKey="novadesk-theme">
         <App />
       </ThemeProvider>
     </QueryClientProvider>

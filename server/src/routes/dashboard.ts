@@ -24,6 +24,7 @@ dashboardRouter.get('/stats', requireAuth(), async (_req, res) => {
     totalTickets,
     openTickets,
     resolvedByAI,
+    totalResolved,
     avgResolutionRaw,
     ticketsPerDayRaw,
   ] = await Promise.all([
@@ -33,19 +34,27 @@ dashboardRouter.get('/stats', requireAuth(), async (_req, res) => {
     // Currently open tickets
     prisma.ticket.count({ where: { status: 'OPEN' } }),
 
-    // Tickets resolved by the AI agent
+    // Tickets resolved by the AI agent (including closed ones)
     aiAgent
       ? prisma.ticket.count({
-          where: { assignedAgentId: aiAgent.id, status: 'RESOLVED' },
+          where: { assignedAgentId: aiAgent.id, status: { in: ['RESOLVED', 'CLOSED'] } },
         })
       : Promise.resolve(0),
 
-    // Average resolution time (ms) for RESOLVED tickets
-    prisma.$queryRaw<{ avg_ms: bigint | null }[]>`
-      SELECT AVG(EXTRACT(EPOCH FROM ("updatedAt" - "createdAt")) * 1000)::bigint AS avg_ms
-      FROM tickets
-      WHERE status = 'RESOLVED'
-    `,
+    // Total resolved or closed tickets (for resolution rate calculation)
+    prisma.ticket.count({
+      where: { status: { in: ['RESOLVED', 'CLOSED'] } },
+    }),
+
+    // Average resolution time (ms) for RESOLVED and CLOSED tickets by AI
+    aiAgent
+      ? prisma.$queryRaw<{ avg_ms: bigint | null }[]>`
+          SELECT AVG(EXTRACT(EPOCH FROM ("updatedAt" - "createdAt")) * 1000)::bigint AS avg_ms
+          FROM tickets
+          WHERE status IN ('RESOLVED', 'CLOSED')
+            AND "assignedAgentId" = ${aiAgent.id}
+        `
+      : Promise.resolve([{ avg_ms: null }]),
 
     // Tickets created per calendar day over the last 30 days
     prisma.$queryRaw<{ day: Date; count: bigint }[]>`
@@ -64,10 +73,10 @@ dashboardRouter.get('/stats', requireAuth(), async (_req, res) => {
   // Format avg resolution time as human-readable string (e.g. "2d 3h")
   const avgResolutionTime = formatDuration(avgMs);
 
-  // AI resolution rate (0 if no tickets at all)
+  // AI resolution rate (compared to total resolved/closed tickets)
   const aiResolutionRate =
-    totalTickets > 0
-      ? Math.round((resolvedByAI / totalTickets) * 1000) / 10 // 1 decimal place
+    totalResolved > 0
+      ? Math.round((resolvedByAI / totalResolved) * 1000) / 10 // 1 decimal place
       : 0;
 
   // Normalise per-day data: fill any missing days with 0 so the chart is continuous
