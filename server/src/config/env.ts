@@ -26,6 +26,6 @@ export const env = {
   // SMTP (outbound)
   EMAIL_SMTP_HOST: process.env.EMAIL_SMTP_HOST ?? 'smtp.gmail.com',
   EMAIL_SMTP_PORT: Number(process.env.EMAIL_SMTP_PORT ?? 587),
-  // How often to poll the inbox, in seconds (default: 60)
-  EMAIL_POLL_INTERVAL: Number(process.env.EMAIL_POLL_INTERVAL ?? 60),
+  // How often to poll the inbox, in seconds (default: 300)
+  EMAIL_POLL_INTERVAL: Number(process.env.EMAIL_POLL_INTERVAL ?? 300),
 };

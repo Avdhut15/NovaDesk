@@ -63,8 +63,21 @@ app.get('/health', async (_req, res) => {
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.use('/api', apiRouter);
 
+// ─── Frontend (Production Only) ───────────────────────────────────────────────
+import path from 'path';
+
+if (env.NODE_ENV === 'production') {
+  const clientDistPath = path.join(process.cwd(), '../client/dist');
+  app.use(express.static(clientDistPath));
+
+  // Catch-all route to serve React's index.html for non-API requests
+  app.get(/^(?!\/api).*/, (req, res) => {
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
+
 // ─── Error Handlers ───────────────────────────────────────────────────────────
-app.use(notFound);
+app.use('/api', notFound); // Ensure only /api paths hit the 404 handler
 app.use(errorHandler);
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
