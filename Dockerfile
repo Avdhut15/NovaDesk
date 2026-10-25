@@ -15,8 +15,8 @@ RUN bun install --frozen-lockfile
 # Copy the rest of the source code
 COPY . .
 
-# Generate Prisma Client
-RUN cd server && bunx prisma generate
+# Generate Prisma Client (uses placeholder DB URL during build time)
+RUN cd server && DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" bunx prisma generate
 
 # Build the frontend (Vite React app)
 RUN cd client && bun run build
