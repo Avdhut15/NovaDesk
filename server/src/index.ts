@@ -11,21 +11,30 @@ import { logEmailStatus } from './lib/email';
 
 const app = express();
 
+// Trust reverse proxy (Render, Cloudflare, etc.) so client IP and protocol (HTTPS) are accurate
+app.set('trust proxy', 1);
+
 // ─── Core Middleware ──────────────────────────────────────────────────────────
 const allowedOrigins = [
   env.CLIENT_URL,
+  process.env.RENDER_EXTERNAL_URL,
+  'https://novadesk-or8d.onrender.com',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
   'http://127.0.0.1:5175',
-];
+].filter(Boolean) as string[];
 
 app.use(
   cors({
     origin: (requestOrigin, callback) => {
-      if (!requestOrigin || allowedOrigins.includes(requestOrigin)) {
+      if (
+        !requestOrigin ||
+        allowedOrigins.includes(requestOrigin) ||
+        requestOrigin.endsWith('.onrender.com')
+      ) {
         callback(null, true);
       } else {
         callback(null, false);

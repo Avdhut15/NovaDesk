@@ -12,7 +12,12 @@ import { Role } from '../types/roles';
 export const auth = betterAuth({
   // ─── Core ───────────────────────────────────────────────────────────────────
   secret: env.BETTER_AUTH_SECRET,
-  baseURL: env.BETTER_AUTH_URL,
+  baseURL: process.env.RENDER_EXTERNAL_URL || env.BETTER_AUTH_URL,
+
+  // ─── Advanced Proxy Configuration ──────────────────────────────────────────
+  advanced: {
+    trustedProxyHeaders: true,
+  },
 
   // ─── Database ───────────────────────────────────────────────────────────────
   database: prismaAdapter(prisma, {
@@ -45,14 +50,18 @@ export const auth = betterAuth({
 
   // ─── Trusted origins ────────────────────────────────────────────────────────
   trustedOrigins: [
+    'https://*.onrender.com',
+    'https://novadesk-or8d.onrender.com',
     env.CLIENT_URL,
+    env.BETTER_AUTH_URL,
+    process.env.RENDER_EXTERNAL_URL,
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5175',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:5174',
     'http://127.0.0.1:5175',
-  ],
+  ].filter(Boolean) as string[],
 });
 
 export type Auth = typeof auth;
