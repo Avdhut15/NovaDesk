@@ -65,9 +65,14 @@ app.use('/api', apiRouter);
 
 // ─── Frontend (Production Only) ───────────────────────────────────────────────
 import path from 'path';
+import fs from 'fs';
 
 if (env.NODE_ENV === 'production') {
-  const clientDistPath = path.join(process.cwd(), '../client/dist');
+  const possiblePaths = [
+    path.join(process.cwd(), '../client/dist'),
+    path.join(process.cwd(), 'client/dist'),
+  ];
+  const clientDistPath = possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
   app.use(express.static(clientDistPath));
 
   // Catch-all route to serve React's index.html for non-API requests

@@ -38,7 +38,7 @@ COPY --from=builder /app/package.json ./package.json
 
 # Copy the entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Expose the single port Express will run on
 EXPOSE 3001

@@ -12,10 +12,10 @@ const adapter = new PrismaPg({
 });
 const prisma = new PrismaClient({ adapter });
 
-const SEED_ADMIN_EMAIL = 'admin@example.com';
-const SEED_ADMIN_PASSWORD = 'password123';
-const SEED_AGENT_EMAIL = 'agent1@example.com';
-const SEED_AGENT_PASSWORD = 'password123';
+const SEED_ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@example.com';
+const SEED_ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'password123';
+const SEED_AGENT_EMAIL = process.env.SEED_AGENT_EMAIL || 'agent1@example.com';
+const SEED_AGENT_PASSWORD = process.env.SEED_AGENT_PASSWORD || 'password123';
 
 async function createUser(email: string, name: string, role: string, password: string) {
   let user = await prisma.user.findUnique({ where: { email } });
@@ -160,54 +160,58 @@ async function main() {
   // 2b. Ensure virtual AI agent exists
   await ensureAiAgent();
 
-  // 3. Seed Knowledge Base
-  // Clear old KB articles first
-  await prisma.knowledgeBase.deleteMany({});
+  // 3. Seed Knowledge Base (if not already seeded)
+  const kbCount = await prisma.knowledgeBase.count();
+  if (kbCount === 0) {
+    const kbPath = path.join(process.cwd(), 'prisma', 'knowledge-base.json');
+    if (fs.existsSync(kbPath)) {
+      const kbData = JSON.parse(fs.readFileSync(kbPath, 'utf8'));
+      await prisma.knowledgeBase.createMany({
+        data: kbData,
+        skipDuplicates: true,
+      });
+      console.log('✅ Knowledge base seeded from knowledge-base.json');
+    }
+  } else {
+    console.log(`ℹ️  Knowledge base already populated (${kbCount} articles) — skipping.`);
+  }
 
-  const kbPath = path.join(process.cwd(), 'prisma', 'knowledge-base.json');
-  const kbData = JSON.parse(fs.readFileSync(kbPath, 'utf8'));
-
-  await prisma.knowledgeBase.createMany({
-    data: kbData,
-    skipDuplicates: true,
-  });
-  console.log('✅ Knowledge base seeded from knowledge-base.json');
-
-  // 4. Delete existing tickets to ensure clean repopulation
-  console.log('🧹 Clearing old tickets...');
-  await prisma.ticket.deleteMany({});
-
-  // 5. Generate 50 realistic support tickets
-  const assignees = [null, admin.id, agent.id];
-  const statuses = [TicketStatus.OPEN, TicketStatus.RESOLVED, TicketStatus.CLOSED];
-  
-  console.log('Generating 50 realistic tickets...');
-  const generatedData = Array.from({ length: 50 }).map((_, i) => {
-    const template = ticketTemplates[i % ticketTemplates.length];
-    const status = statuses[i % statuses.length];
-    const assignee = assignees[i % assignees.length];
-    const customer = customers[i % customers.length];
+  // 4. Seed initial tickets (only if tickets table is empty)
+  const ticketCount = await prisma.ticket.count();
+  if (ticketCount === 0) {
+    console.log('Generating initial demo tickets...');
+    const assignees = [null, admin.id, agent.id];
+    const statuses = [TicketStatus.OPEN, TicketStatus.RESOLVED, TicketStatus.CLOSED];
     
-    // Randomize creation dates within the last 30 days
-    const daysAgo = Math.floor(Math.random() * 30);
-    const date = new Date();
-    date.setDate(date.getDate() - daysAgo);
+    const generatedData = Array.from({ length: 50 }).map((_, i) => {
+      const template = ticketTemplates[i % ticketTemplates.length];
+      const status = statuses[i % statuses.length];
+      const assignee = assignees[i % assignees.length];
+      const customer = customers[i % customers.length];
+      
+      // Randomize creation dates within the last 30 days
+      const daysAgo = Math.floor(Math.random() * 30);
+      const date = new Date();
+      date.setDate(date.getDate() - daysAgo);
 
-    return {
-      subject: `${template.s} (Ticket #${i + 100})`,
-      body: template.b,
-      category: template.c,
-      status,
-      assignedAgentId: assignee,
-      fromEmail: customer.email,
-      fromName: customer.name,
-      createdAt: date,
-      updatedAt: date,
-    };
-  });
+      return {
+        subject: `${template.s} (Ticket #${i + 100})`,
+        body: template.b,
+        category: template.c,
+        status,
+        assignedAgentId: assignee,
+        fromEmail: customer.email,
+        fromName: customer.name,
+        createdAt: date,
+        updatedAt: date,
+      };
+    });
 
-  await prisma.ticket.createMany({ data: generatedData });
-  console.log('✅ 50 realistic support tickets created!');
+    await prisma.ticket.createMany({ data: generatedData });
+    console.log('✅ Initial support tickets created!');
+  } else {
+    console.log(`ℹ️  Tickets already exist (${ticketCount}) — skipping initial ticket generation.`);
+  }
 
   console.log('🎉 Seed complete!');
 }
