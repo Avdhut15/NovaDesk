@@ -35,49 +35,126 @@ NovaDesk utilizes a decoupled monorepo architecture: a high-performance **React 
 ### Architecture Diagram
 
 ```mermaid
-flowchart TD
-    subgraph INGESTION["Inbound Channels"]
-        Customer["Customer Email Client"]
-        Customer -->|IMAP / TLS| IMAPPoller["IMAP Poller Worker<br/>(Scheduled cron)"]
-        Customer -->|HTTP POST| Webhook["Email Webhook API<br/>(/api/tickets/ingest)"]
-        AgentUI["Support Agent<br/>(Web Dashboard)"] -->|Vite SPA| ClientApp["React 19 Frontend<br/>(TanStack Query + Axios)"]
+flowchart TB
+    %% ─────────────────────────────────────────────────────────────
+    %% Layer 1: Client and Ingestion
+    %% ─────────────────────────────────────────────────────────────
+    subgraph L1["1. Client and Ingestion Layer"]
+        Customer["Customer<br/>(Email / Inbound Queries)"]
+        AgentUI["Support Agent & Admin<br/>(React 19 SPA • Vite 8 • Tailwind CSS v4)"]
+        WebhookClient["External Inbound Webhooks<br/>(SendGrid / Postmark / Mailgun)"]
     end
 
-    subgraph API_GATEWAY["API & Application Layer (Express 5 / Bun)"]
-        ClientApp -->|Session Auth / REST| Server["Express 5 REST API"]
-        Webhook --> Server
-        Auth["Better Auth<br/>(PostgreSQL Sessions)"] <--> Server
-        RBAC["RBAC Middleware<br/>(ADMIN / AGENT)"] <--> Server
-    end
-
-    subgraph QUEUE_WORKERS["Asynchronous Job Orchestration (pg-boss)"]
-        Server -->|Enqueue Jobs| Queue[("pg-boss Job Queue<br/>(PostgreSQL)")]
-        IMAPPoller -->|Enqueue Ingest| Queue
+    %% ─────────────────────────────────────────────────────────────
+    %% Layer 2: API and Security
+    %% ─────────────────────────────────────────────────────────────
+    subgraph L2["2. API and Security Layer (Express 5 on Bun)"]
+        APIGateway["Express 5 REST API Gateway<br/>(Port 3001 • Trust Proxy Enabled)"]
+        BetterAuth["Better Auth & Session Guard<br/>(PostgreSQL Session Validation)"]
+        RBAC["RBAC Middleware<br/>(Role Enforcement: ADMIN / AGENT)"]
         
-        Queue --> W_Classify["classify-ticket<br/>Worker"]
-        Queue --> W_Resolve["auto-resolve-ticket<br/>Worker"]
-        Queue --> W_Email["send-reply-email<br/>Worker"]
-        Queue --> W_Cleanup["close-resolved-tickets<br/>Worker (Hourly Cron)"]
+        subgraph Endpoints["REST Route Controllers"]
+            Routes_Tickets["/api/tickets<br/>(CRUD • Sort • Filter • Ingest)"]
+            Routes_AI["/api/tickets/:id<br/>(Summarize • Polish Reply)"]
+            Routes_Replies["/api/tickets/:id/replies<br/>(Thread History & Post Reply)"]
+            Routes_Dash["/api/dashboard<br/>(KPI Aggregation & 30-Day Trends)"]
+            Routes_Users["/api/users & /api/agents<br/>(Agent Directory & Admin CRUD)"]
+        end
+
+        APIGateway --> BetterAuth
+        BetterAuth --> RBAC
+        RBAC --> Endpoints
     end
 
-    subgraph AI_SERVICES["AI Engine (Vercel AI SDK)"]
-        W_Classify -->|Categorize| Gemini["Google Gemini API<br/>(gemini-2.5-flash)"]
-        W_Resolve -->|Analyze & Draft| Gemini
-        Server -->|On-demand Summaries & Polish| Gemini
+    %% ─────────────────────────────────────────────────────────────
+    %% Layer 3: Background Job Orchestration
+    %% ─────────────────────────────────────────────────────────────
+    subgraph L3["3. Background Job Orchestration Layer (pg-boss)"]
+        BossQueue["pg-boss Queue Engine<br/>(Transactional Job Scheduler & Queue)"]
+
+        subgraph Workers["Asynchronous Job Workers"]
+            W_IMAP["imap-poll Worker<br/>(Cron: every 60s)"]
+            W_Classify["classify-ticket Worker<br/>(Event-driven AI classification)"]
+            W_Resolve["auto-resolve-ticket Worker<br/>(Autonomous resolution & escalation)"]
+            W_Email["send-reply-email Worker<br/>(Outbound customer dispatch)"]
+            W_Close["close-resolved-tickets Worker<br/>(Scheduled cron: hourly)"]
+        end
+
+        BossQueue -.->|Dispatches jobs| Workers
     end
 
-    subgraph DATA_TIER["Storage & Transport Layer"]
-        W_Resolve <-->|KB Retrieval| DB[(PostgreSQL 18<br/>Prisma ORM)]
-        Server <-->|Ticket & User CRUD| DB
-        W_Cleanup -->|Archive Tickets| DB
-        W_Email -->|SMTP / TLS| CustomerMailbox["Customer Inbox<br/>(Outbound Delivery)"]
+    %% ─────────────────────────────────────────────────────────────
+    %% Layer 4: AI and External Integrations
+    %% ─────────────────────────────────────────────────────────────
+    subgraph L4["4. AI and External Integrations Layer"]
+        GeminiAPI["Google Gemini 2.5 Flash API<br/>(Vercel AI SDK • Categorization, Resolution, Polish, Summary)"]
+        IMAPService["Inbound IMAP Mail Server<br/>(Gmail / Custom IMAP • TLS 993)"]
+        SMTPService["Outbound SMTP Mail Server<br/>(Nodemailer • STARTTLS 587 / SSL 465)"]
     end
 
-    style INGESTION fill:#f8fafc,stroke:#cbd5e1,stroke-width:1px
-    style API_GATEWAY fill:#eff6ff,stroke:#93c5fd,stroke-width:1px
-    style QUEUE_WORKERS fill:#fef3c7,stroke:#fcd34d,stroke-width:1px
-    style AI_SERVICES fill:#f3e8ff,stroke:#d8b4fe,stroke-width:1px
-    style DATA_TIER fill:#ecfdf5,stroke:#6ee7b7,stroke-width:1px
+    %% ─────────────────────────────────────────────────────────────
+    %% Layer 5: Data Persistence
+    %% ─────────────────────────────────────────────────────────────
+    subgraph L5["5. Data Persistence Layer"]
+        PrismaORM["Prisma 7 ORM<br/>(@prisma/adapter-pg client)"]
+
+        subgraph PostgresStorage["PostgreSQL 18 Database"]
+            AppTables[("Application Schema<br/>• tickets & ticket_replies<br/>• knowledge_base<br/>• user, session, account")]
+            BossTables[("pg-boss Schema (pgboss.*)<br/>• job & archive<br/>• schedule & version")]
+        end
+
+        PrismaORM <-->|SQL Queries / Connection Pool| AppTables
+        BossQueue <-->|Transactional Job State Management| BossTables
+    end
+
+    %% ─────────────────────────────────────────────────────────────
+    %% Cross-Layer Flows & Connectors
+    %% ─────────────────────────────────────────────────────────────
+    %% Client & Ingestion Flows
+    Customer -->|1. Inbound email| IMAPService
+    IMAPService <-->|2. Fetches unseen emails| W_IMAP
+    W_IMAP -->|3. Ingests ticket record| PrismaORM
+    W_IMAP -.->|4. Enqueues classify & auto-resolve| BossQueue
+
+    WebhookClient -->|Inbound Webhook POST /ingest| APIGateway
+    AgentUI <-->|HTTPS API Requests & Cookie Auth| APIGateway
+
+    %% API to Persistence & Queue
+    Endpoints <-->|Data CRUD via Prisma| PrismaORM
+    Endpoints -.->|Enqueue email & AI jobs| BossQueue
+    Routes_AI -->|On-demand Summarize & Polish| GeminiAPI
+
+    %% Worker Processing Flows
+    W_Classify -->|Prompt: 4 e-commerce categories| GeminiAPI
+    W_Classify -->|Persist assigned category| PrismaORM
+
+    W_Resolve -->|1. Fetch Knowledge Base articles| PrismaORM
+    W_Resolve -->|2. Evaluate resolution & guardrails| GeminiAPI
+    W_Resolve -->|3. Update status to RESOLVED or OPEN| PrismaORM
+    W_Resolve -.->|4. If resolved: Enqueue send-reply-email| BossQueue
+
+    W_Email -->|Render Markdown & Send via SMTP| SMTPService
+    SMTPService -->|Deliver reply email| Customer
+
+    W_Close -->|Batch update: RESOLVED > 24h to CLOSED| PrismaORM
+
+    %% ─────────────────────────────────────────────────────────────
+    %% Diagram Legend
+    %% ─────────────────────────────────────────────────────────────
+    subgraph Legend["Diagram Legend"]
+        direction LR
+        Leg_Sync["── Solid Arrow: Synchronous HTTP / Internal Method Call"]
+        Leg_Async["-.- Dashed Arrow: Asynchronous Queue Event (pg-boss)"]
+        Leg_Data["<--> Double Arrow: Database Read/Write or Bidirectional Sync"]
+    end
+
+    %% Visual Styling
+    style L1 fill:#f8fafc,stroke:#cbd5e1,stroke-width:1.5px
+    style L2 fill:#eff6ff,stroke:#93c5fd,stroke-width:1.5px
+    style L3 fill:#fef3c7,stroke:#fcd34d,stroke-width:1.5px
+    style L4 fill:#f3e8ff,stroke:#d8b4fe,stroke-width:1.5px
+    style L5 fill:#ecfdf5,stroke:#6ee7b7,stroke-width:1.5px
+    style Legend fill:#ffffff,stroke:#e2e8f0,stroke-width:1px
 ```
 
 ---
@@ -123,15 +200,51 @@ flowchart TD
 
 ```mermaid
 stateDiagram-v2
-    [*] --> NEW : Ingested via Email / Webhook / UI
-    NEW --> PROCESSING : Enqueued to pg-boss
-    PROCESSING --> RESOLVED : AI Confidence High (KB Answer Found)
-    PROCESSING --> OPEN : Escalated (Edge Case / Human Required)
-    OPEN --> RESOLVED : Human Agent Responds & Resolves
-    RESOLVED --> OPEN : Customer Follow-up Reply Received
-    RESOLVED --> CLOSED : After 24 Hours (Hourly Cron Worker)
-    OPEN --> CLOSED : Manually Closed by Agent / Admin
-    CLOSED --> [*]
+    direction TB
+
+    [*] --> NEW : Ingestion via Email (IMAP), Webhook, or Manual UI creation
+
+    NEW --> PROCESSING : pg-boss autoResolveTicket worker acquires ticket<br/>(Status immediately set to PROCESSING)
+
+    state PROCESSING {
+        [*] --> FetchKB : Retrieve indexed Knowledge Base articles
+        FetchKB --> GeminiInference : Prompt Gemini 2.5 Flash with Context & Policies
+        GeminiInference --> HighConfidence : Answer found in KB & no risk triggers
+        GeminiInference --> EscalationTrigger : Lost package, fraud, legal, refund dispute, or low confidence
+    }
+
+    PROCESSING --> RESOLVED : Autonomous AI Resolution<br/>[AI posts reply, sets assignedAgent = AI, enqueues outbound email]
+
+    PROCESSING --> OPEN : Escalation to Human Queue<br/>[Guardrail triggered: AI unassigned (assignedAgent = null), routed to human backlog]
+
+    OPEN --> OPEN : Agent Assignment<br/>[Admin / Agent claims ticket or reassigns to teammate]
+
+    OPEN --> RESOLVED : Human Agent Resolution<br/>[Agent posts reply and marks ticket as RESOLVED]
+
+    OPEN --> CLOSED : Manual Close<br/>[Agent / Admin manually closes ticket without reply]
+
+    RESOLVED --> OPEN : Customer Follow-up Reply<br/>[New customer reply arrives: ticket automatically re-opens]
+
+    RESOLVED --> CLOSED : 24-Hour Inactivity Rule<br/>[Hourly cron worker (close-resolved-tickets) archives resolved tickets > 24h old]
+
+    CLOSED --> [*] : Archived Ticket<br/>[Ticket locked: further replies return HTTP 409 Conflict]
+
+    note right of OPEN
+        Escalation in NovaDesk:
+        The database schema defines status as OPEN.
+        Escalated tickets are identified by having
+        status = OPEN and assignedAgentId = null,
+        allowing human support agents to filter
+        and claim unhandled complex inquiries.
+    end note
+
+    note left of RESOLVED
+        Auto-Reopen Guarantee:
+        Whenever a new reply is posted to a
+        RESOLVED ticket (via email or API),
+        the backend automatically transitions
+        status back to OPEN for review.
+    end note
 ```
 
 | Status | Description |
